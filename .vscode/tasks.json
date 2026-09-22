@@ -69,6 +69,57 @@
 			"command": "npm run build",
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Format SmartShelf source",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"--yes",
+				"prettier@3.5.3",
+				"--write",
+				"src/**/*.{js,jsx,css}",
+				"vite.config.js",
+				"index.html",
+				"package.json"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Format SmartShelf source",
+			"type": "shell",
+			"command": "npx --yes prettier@3.5.3 --write \"src/**/*.{js,jsx,css}\" vite.config.js index.html package.json",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Format SmartShelf files",
+			"type": "shell",
+			"command": "npx --yes prettier@3.5.3 --write src/main.jsx src/components/atoms.jsx src/data/mockData.js src/styles.css vite.config.js index.html package.json",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Build formatted SmartShelf",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check formatted SmartShelf",
+			"type": "shell",
+			"command": "npx --yes prettier@3.5.3 --check src/main.jsx src/components/atoms.jsx src/data/mockData.js src/styles.css vite.config.js index.html package.json",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Review formatting changes",
+			"type": "shell",
+			"command": "git diff --stat",
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

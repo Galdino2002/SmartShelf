@@ -1,28 +1,1069 @@
-import React,{useEffect,useState} from 'react'
-import {createRoot} from 'react-dom/client'
-import {BrowserRouter,useNavigate,useLocation,Navigate,Routes,Route,NavLink} from 'react-router-dom'
-import {LayoutDashboard,Warehouse,TriangleAlert,History,Settings,LogOut,Bell,Package,Layers,Activity,ArrowUpRight,Menu,ChevronRight,X,CheckCircle2,Wifi,Radio,RefreshCw,Eye,Check,SlidersHorizontal} from 'lucide-react'
-import {LineChart,Line,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer} from 'recharts'
-import {mockShelves,mockProducts,mockAlerts,mockHistory,mockNotifications,chart7,chart30} from './data/mockData'
-import {StatusBadge,ProgressBar,IconButton} from './components/atoms'
-import './styles.css'
+import React, { useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  BrowserRouter,
+  useNavigate,
+  useLocation,
+  Navigate,
+  Routes,
+  Route,
+  NavLink,
+} from "react-router-dom";
+import {
+  LayoutDashboard,
+  Warehouse,
+  TriangleAlert,
+  History,
+  Settings,
+  LogOut,
+  Bell,
+  Package,
+  Layers,
+  Activity,
+  ArrowUpRight,
+  Menu,
+  ChevronRight,
+  X,
+  CheckCircle2,
+  Wifi,
+  Radio,
+  RefreshCw,
+  Eye,
+  Check,
+  SlidersHorizontal,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  mockShelves,
+  mockProducts,
+  mockAlerts,
+  mockHistory,
+  mockNotifications,
+  chart7,
+  chart30,
+} from "./data/mockData";
+import { StatusBadge, ProgressBar, IconButton } from "./components/atoms";
+import "./styles.css";
 
-function Modal({children,onClose}){useEffect(()=>{const close=e=>e.key==='Escape'&&onClose();document.addEventListener('keydown',close);return()=>document.removeEventListener('keydown',close)},[onClose]);return <div className="overlay" onClick={onClose}><div className="modal" role="dialog" aria-modal="true" onClick={e=>e.stopPropagation()}><IconButton label="Fechar janela" className="close" onClick={onClose}><X size={18}/></IconButton>{children}</div></div>}
-function ShelfModal({shelf,onClose}){return <Modal onClose={onClose}><div className="modal-kicker">DETALHES DA PRATELEIRA</div><h2>Prateleira {shelf.id}</h2><div className="detail-level"><strong>{shelf.level}%</strong><span>Nível atual</span></div><ProgressBar value={shelf.level} status={shelf.status} label={`Nível da prateleira ${shelf.id}`}/><div className="detail-grid"><div><small>Produtos</small><b>{shelf.products} itens</b></div><div><small>Nível mínimo</small><b>{shelf.min}%</b></div><div><small>Último monitoramento</small><b>{shelf.updated}</b></div><div><small>Status</small><StatusBadge status={shelf.status}/></div></div></Modal>}
-function AlertModal({alert,onClose}){return <Modal onClose={onClose}><div className="modal-kicker">DETALHES DO ALERTA</div><h2>{alert.shelf} · {alert.message}</h2><p className="muted">Este alerta foi gerado a partir de uma leitura simulada do sensor de estoque.</p><div className="detail-grid"><div><small>Prateleira</small><b>{alert.shelf}</b></div><div><small>Quando</small><b>{alert.time}</b></div><div><small>Classificação</small><StatusBadge status={alert.severity}/></div><div><small>Situação</small><b>{alert.resolved?'Resolvido':'Pendente'}</b></div></div></Modal>}
-function Login(){const nav=useNavigate();const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [error,setError]=useState('');const [loading,setLoading]=useState(false);const submit=e=>{e.preventDefault();if(!email||!password){setError('Preencha e-mail e senha para continuar.');return}setLoading(true);setTimeout(()=>{localStorage.setItem('smartshelf-auth','true');nav('/dashboard')},650)};const demo=()=>{setEmail('admin@smartshelf.com');setPassword('123456');setError('')};return <div className="login-page"><div className="login-visual"><div className="brand"><div className="brand-mark"><Layers size={21}/></div><span>Smart<strong>Shelf</strong></span></div><div className="visual-copy"><span className="eyebrow">PRATELEIRAS INTELIGENTES COM MONITORAMENTO IoT</span><h1>O estoque que<br/><em>pensa</em> por você.</h1><p>Monitoramento inteligente para o seu estoque.</p><div className="shelf-illustration"><div className="sensor-tag"><Radio size={16}/> SENSOR ATIVO</div>{[86,42,18].map((n,i)=><div className="illustrated-row" key={i}><span className="box" style={{height:`${18+n/5}px`}}/><span className="box small"/><span className="box"/><div className="rack"><i style={{width:`${n}%`}}/></div></div>)}</div><div className="visual-foot"><span><Wifi size={14}/> Sensores conectados</span><span><Activity size={14}/> Dados em tempo real</span></div></div></div><div className="login-panel"><div className="login-card"><div className="mobile-brand brand"><div className="brand-mark"><Layers size={19}/></div><span>Smart<strong>Shelf</strong></span></div><span className="eyebrow">BEM-VINDO DE VOLTA</span><h2>Acesse seu painel</h2><p className="muted">Entre para acompanhar seus estoques inteligentes.</p><form onSubmit={submit}><label>E-mail<input type="email" placeholder="seu@email.com" value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)}/></label><div className="form-row"><label className="check"><input type="checkbox"/> <span>Manter conectado</span></label><a href="#forgot" onClick={e=>e.preventDefault()}>Esqueci minha senha</a></div>{error&&<div className="error">{error}</div>}<button className="btn primary full" disabled={loading}>{loading?<><RefreshCw className="spin" size={17}/> Entrando...</>:'Entrar'}</button></form><div className="divider"><span>ou</span></div><div className="demo-box"><div><b>Modo demonstração</b><small>Explore o sistema com dados simulados</small></div><button className="btn outline" onClick={()=>{demo();setTimeout(()=>{localStorage.setItem('smartshelf-auth','true');nav('/dashboard')},150)}}>Entrar como demo <ChevronRight size={16}/></button></div><p className="login-note">Demo: admin@smartshelf.com · 123456</p></div><small className="copyright">SmartShelf · Projeto Integrador — Cidades Inteligentes e IoT</small></div></div>}
-function Header({onMenu}){const [open,setOpen]=useState(false);return <header><button className="icon-btn menu-mobile" onClick={onMenu}><Menu size={21}/></button><div><h1>{({ '/dashboard':'Dashboard','/prateleiras':'Prateleiras','/alertas':'Alertas','/historico':'Histórico','/configuracoes':'Configurações'})[useLocation().pathname]}</h1><p className="muted">{useLocation().pathname==='/dashboard'?'Visão geral do monitoramento das prateleiras':'Acompanhe e gerencie seus dados de estoque'}</p></div><div className="header-actions"><button className="notification-btn" onClick={()=>setOpen(!open)}><Bell size={19}/><i/></button><div className="avatar">AD</div><div className="header-user"><b>Administrador</b><small>Administrador</small></div>{open&&<NotificationPanel/>}</div></header>}
-function NotificationPanel(){return <div className="notification-panel"><div className="panel-heading"><b>Notificações</b><span>3 novas</span></div>{mockNotifications.map((n,i)=><div className="notification" key={i}><span className={`notif-dot ${i===0?'critical':''}`}><Bell size={14}/></span><div><b>{n.title}</b><small>{n.body}</small><small className="muted">{n.time}</small></div></div>)}<button className="text-btn">Ver todas as notificações <ChevronRight size={14}/></button></div>}
-function Sidebar({open,onClose}){const nav=useNavigate();const links=[['/dashboard','Dashboard',LayoutDashboard],['/prateleiras','Prateleiras',Warehouse],['/alertas','Alertas',TriangleAlert],['/historico','Histórico',History]];return <><aside className={open?'open':''}><div className="sidebar-brand brand"><div className="brand-mark"><Layers size={19}/></div><span>Smart<strong>Shelf</strong></span></div><div className="sidebar-label">MENU PRINCIPAL</div>{links.map(([to,label,Icon])=><NavLink key={to} to={to} onClick={onClose} className={({isActive})=>isActive?'active':''}><Icon size={18}/>{label}{label==='Alertas'&&<span className="nav-count">5</span>}</NavLink>)}<div className="sidebar-label system">SISTEMA</div><NavLink to="/configuracoes" onClick={onClose} className={({isActive})=>isActive?'active':''}><Settings size={18}/>Configurações</NavLink><div className="sidebar-bottom"><div className="side-user"><div className="avatar">AD</div><div><b>Admin</b><small>Administrador</small></div></div><button className="logout" onClick={()=>{localStorage.removeItem('smartshelf-auth');nav('/login')}}><LogOut size={17}/>Sair</button></div></aside>{open&&<div className="sidebar-backdrop" onClick={onClose}/>}</>}
-function Layout({children}){const [menu,setMenu]=useState(false);return <div className="app-shell"><Sidebar open={menu} onClose={()=>setMenu(false)}/><main><Header onMenu={()=>setMenu(true)}/>{children}</main></div>}
-function StatCard({icon:Icon,label,value,trend,accent}){return <div className="stat-card"><div className={`stat-icon ${accent}`}><Icon size={19}/></div><div className="stat-content"><span>{label}</span><strong>{value}</strong><small className={trend.startsWith('+')?'positive':''}>{trend}</small></div><ArrowUpRight className="stat-arrow" size={16}/></div>}
-function StockChart(){const [period,setPeriod]=useState('7');const data=period==='7'?chart7:chart30;return <div className="panel chart-panel"><div className="panel-title"><div><h3>Monitoramento do estoque</h3><p className="muted">Nível médio dos produtos</p></div><div className="segmented"><button className={period==='7'?'selected':''} onClick={()=>setPeriod('7')}>7 dias</button><button className={period==='30'?'selected':''} onClick={()=>setPeriod('30')}>30 dias</button></div></div><div className="chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7eeeb"/><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize:12,fill:'#84918d'}}/><YAxis domain={[0,100]} axisLine={false} tickLine={false} tick={{fontSize:12,fill:'#84918d'}} tickFormatter={v=>`${v}%`}/><Tooltip formatter={v=>[`${v}%`,'Nível médio']} contentStyle={{borderRadius:10,border:'1px solid #e4ece8'}}/><Line type="monotone" dataKey="value" stroke="#159a75" strokeWidth={3} dot={{r:4,fill:'#fff',stroke:'#159a75',strokeWidth:2}} activeDot={{r:6}}/></LineChart></ResponsiveContainer></div></div>}
-function RecentAlerts({onView}){return <div className="panel"><div className="panel-title"><div><h3>Alertas recentes</h3><p className="muted">Acompanhe os últimos eventos</p></div><NavLink className="text-btn" to="/alertas">Ver todos <ChevronRight size={14}/></NavLink></div><div className="alert-list">{mockAlerts.slice(0,3).map(a=><div className="alert-row" key={a.id}><span className={`alert-icon ${a.severity}`}>{a.severity==='success'?<CheckCircle2 size={17}/>:<TriangleAlert size={17}/>}</span><div className="alert-info"><b>Prateleira {a.shelf}</b><span>{a.message}</span></div><div className="alert-time">{a.time}</div><button className="mini-btn" onClick={()=>onView(a)}><Eye size={15}/> Visualizar</button></div>)}</div></div>}
-function Dashboard(){const [alert,setAlert]=useState(null);return <div className="content"><div className="stats-grid"><StatCard icon={Package} label="Produtos monitorados" value="128" trend="+8% este mês" accent="teal"/><StatCard icon={Warehouse} label="Prateleiras monitoradas" value="12" trend="+2 este mês" accent="blue"/><StatCard icon={TriangleAlert} label="Estoque baixo" value="08" trend="2 críticos" accent="orange"/><StatCard icon={Bell} label="Alertas ativos" value="05" trend="-12% esta semana" accent="red"/></div><div className="iot-banner"><div className="iot-icon"><Radio size={20}/></div><div><b>Monitoramento IoT <span className="live-dot"/> Ao vivo</b><p>Os dados apresentados nesta demonstração representam leituras simuladas de sensores instalados nas prateleiras.</p></div><div className="iot-flow"><span>SENSOR</span><i>→</i><span>ESP32</span><i>→</i><span>DADOS</span><i>→</i><span>ALERTA</span></div></div><div className="dashboard-grid"><StockChart/><div className="panel shelf-status"><div className="panel-title"><div><h3>Status das prateleiras</h3><p className="muted">Visão por nível de estoque</p></div><NavLink className="text-btn" to="/prateleiras">Ver todas <ChevronRight size={14}/></NavLink></div>{mockShelves.slice(0,4).map(s=><div className="shelf-row" key={s.id}><div className="shelf-name"><span className={`shelf-dot ${s.status}`}/><b>{s.id}</b><small>{s.products} produtos</small></div><div className="level-wrap"><div className="progress"><i className={s.status} style={{width:`${s.level}%`}}/></div><strong>{s.level}%</strong></div><StatusBadge status={s.status}/></div>)}</div></div><div className="dashboard-grid lower"><RecentAlerts onView={setAlert}/><div className="panel"><div className="panel-title"><div><h3>Atividade recente</h3><p className="muted">Últimas atualizações</p></div><Activity size={19} className="muted"/></div><div className="table-scroll"><table><thead><tr><th>Produto</th><th>Prateleira</th><th>Nível</th><th>Atualização</th></tr></thead><tbody>{mockProducts.map(p=><tr key={p.name}><td><b>{p.name}</b></td><td>{p.shelf}</td><td><span className={`level-text ${p.level<30?'danger':''}`}>{p.level}%</span></td><td className="muted">{p.updated}</td></tr>)}</tbody></table></div></div></div>{alert&&<AlertModal alert={alert} onClose={()=>setAlert(null)}/>}</div>}
-function Shelves(){const [filter,setFilter]=useState('all');const [selected,setSelected]=useState(null);const shown=filter==='all'?mockShelves:mockShelves.filter(s=>s.status===filter);return <div className="content"><div className="page-intro"><div><h2>Prateleiras</h2><p className="muted">Gerencie e acompanhe todas as prateleiras inteligentes.</p></div><button className="btn outline"><RefreshCw size={16}/> Atualizar dados</button></div><div className="filter-tabs">{[['all','Todas'],['normal','Normal'],['attention','Atenção'],['critical','Crítico']].map(([v,l])=><button key={v} className={filter===v?'active':''} onClick={()=>setFilter(v)}>{l}<span>{v==='all'?mockShelves.length:mockShelves.filter(s=>s.status===v).length}</span></button>)}</div><div className="shelf-cards">{shown.map(s=><div className="shelf-card" key={s.id}><div className="card-top"><div className={`shelf-big-icon ${s.status}`}><Warehouse size={21}/></div><StatusBadge status={s.status}/></div><h3>Prateleira {s.id}</h3><div className="big-level">{s.level}%</div><div className="progress large"><i className={s.status} style={{width:`${s.level}%`}}/></div><div className="shelf-meta"><span><Package size={15}/> {s.products} produtos</span><span><RefreshCw size={14}/> {s.updated}</span></div><button className="btn outline full" onClick={()=>setSelected(s)}>Ver detalhes <ChevronRight size={15}/></button></div>)}</div>{!shown.length&&<div className="empty"><SlidersHorizontal size={28}/><b>Nenhuma prateleira encontrada</b><span>Tente outro filtro.</span></div>}{selected&&<ShelfModal shelf={selected} onClose={()=>setSelected(null)}/>}</div>}
-function Alerts(){const [items,setItems]=useState(mockAlerts);const [filter,setFilter]=useState('all');const [selected,setSelected]=useState(null);const shown=items.filter(a=>filter==='all'||(filter==='resolved'?a.resolved:a.severity===filter&&!a.resolved));return <div className="content"><div className="page-intro"><div><h2>Alertas</h2><p className="muted">Acompanhe ocorrências e mantenha seu estoque em dia.</p></div><div className="alert-summary"><b>{items.filter(a=>!a.resolved).length}</b> alertas pendentes</div></div><div className="filter-tabs">{[['all','Todos'],['critical','Críticos'],['attention','Atenção'],['resolved','Resolvidos']].map(([v,l])=><button key={v} className={filter===v?'active':''} onClick={()=>setFilter(v)}>{l}</button>)}</div><div className="panel table-panel"><div className="table-scroll"><table><thead><tr><th>Data</th><th>Prateleira</th><th>Mensagem</th><th>Status</th><th>Ação</th></tr></thead><tbody>{shown.map(a=><tr key={a.id}><td className="muted">{a.time}</td><td><b>{a.shelf}</b></td><td>{a.message}</td><td><StatusBadge status={a.resolved?'success':a.severity}/></td><td><div className="action-row"><button className="mini-btn" onClick={()=>setSelected(a)}><Eye size={15}/> Ver</button>{!a.resolved&&<button className="resolve-btn" onClick={()=>setItems(items.map(x=>x.id===a.id?{...x,resolved:true}:x))}><Check size={15}/> Resolver</button>}</div></td></tr>)}</tbody></table></div>{!shown.length&&<div className="empty">Nenhum alerta neste filtro.</div>}</div>{selected&&<AlertModal alert={selected} onClose={()=>setSelected(null)}/>}</div>}
-function HistoryPage(){const [shelf,setShelf]=useState('Todas');const data=mockHistory.filter(h=>shelf==='Todas'||h.shelf===shelf);return <div className="content"><div className="page-intro"><div><h2>Histórico de Monitoramento</h2><p className="muted">Consulte as leituras simuladas dos sensores.</p></div><div className="history-filters"><select><option>Últimos 30 dias</option><option>Últimos 7 dias</option></select><select value={shelf} onChange={e=>setShelf(e.target.value)}><option>Todas</option>{mockShelves.slice(0,4).map(s=><option key={s.id}>{s.id}</option>)}</select></div></div><StockChart/><div className="panel table-panel history-table"><div className="panel-title"><h3>Registros de leitura</h3><span className="muted">{data.length} registros</span></div><div className="table-scroll"><table><thead><tr><th>Data</th><th>Horário</th><th>Prateleira</th><th>Produto</th><th>Nível</th><th>Status</th></tr></thead><tbody>{data.map((h,i)=><tr key={i}><td>{h.date}</td><td className="muted">{h.time}</td><td><b>{h.shelf}</b></td><td>{h.product}</td><td>{h.level}%</td><td><StatusBadge status={h.status==='Normal'?'normal':h.status==='Atenção'?'attention':'critical'}/></td></tr>)}</tbody></table></div></div></div>}
-function SettingsPage(){const [saved,setSaved]=useState(false);const [name,setName]=useState(localStorage.getItem('smartshelf-name')||'Administrador');const save=e=>{e.preventDefault();localStorage.setItem('smartshelf-name',name);setSaved(true);setTimeout(()=>setSaved(false),2200)};return <div className="content"><div className="page-intro"><div><h2>Configurações</h2><p className="muted">Personalize sua experiência no SmartShelf.</p></div></div><form className="settings-grid" onSubmit={save}><div className="panel settings-section"><div className="section-heading"><div className="settings-icon"><Settings size={18}/></div><div><h3>Perfil</h3><p className="muted">Informações da sua conta</p></div></div><label>Nome<input value={name} onChange={e=>setName(e.target.value)}/></label><label>E-mail<input value="admin@smartshelf.com" readOnly/></label></div><div className="panel settings-section"><div className="section-heading"><div className="settings-icon"><Bell size={18}/></div><div><h3>Preferências</h3><p className="muted">Escolha como deseja receber atualizações</p></div></div>{['Receber alertas de estoque','Notificações no navegador','Atualização automática dos dados'].map((x,i)=><label className="toggle-row" key={x}><span><b>{x}</b><small>{i===0?'Seja avisado quando o estoque estiver baixo':i===1?'Receba novidades importantes do sistema':'Atualizar leituras a cada 5 minutos'}</small></span><input type="checkbox" defaultChecked={i!==1}/><i/></label>)}</div><div className="settings-actions"><button className="btn primary" type="submit">{saved?<><Check size={16}/> Alterações salvas</>: 'Salvar alterações'}</button></div></form></div>}
-function Protected(){return localStorage.getItem('smartshelf-auth')?<Layout><Routes><Route path="/dashboard" element={<Dashboard/>}/><Route path="/prateleiras" element={<Shelves/>}/><Route path="/alertas" element={<Alerts/>}/><Route path="/historico" element={<HistoryPage/>}/><Route path="/configuracoes" element={<SettingsPage/>}/></Routes></Layout>:<Navigate to="/login" replace/>}
-function App(){return <Routes><Route path="/login" element={<Login/>}/><Route path="/" element={<Navigate to={localStorage.getItem('smartshelf-auth')?'/dashboard':'/login'} replace/>}/><Route path="*" element={<Protected/>}/></Routes>}
-createRoot(document.getElementById('root')).render(<BrowserRouter><App/></BrowserRouter>)
+function Modal({ children, onClose }) {
+  useEffect(() => {
+    const close = (e) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [onClose]);
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <IconButton label="Fechar janela" className="close" onClick={onClose}>
+          <X size={18} />
+        </IconButton>
+        {children}
+      </div>
+    </div>
+  );
+}
+function ShelfModal({ shelf, onClose }) {
+  return (
+    <Modal onClose={onClose}>
+      <div className="modal-kicker">DETALHES DA PRATELEIRA</div>
+      <h2>Prateleira {shelf.id}</h2>
+      <div className="detail-level">
+        <strong>{shelf.level}%</strong>
+        <span>Nível atual</span>
+      </div>
+      <ProgressBar
+        value={shelf.level}
+        status={shelf.status}
+        label={`Nível da prateleira ${shelf.id}`}
+      />
+      <div className="detail-grid">
+        <div>
+          <small>Produtos</small>
+          <b>{shelf.products} itens</b>
+        </div>
+        <div>
+          <small>Nível mínimo</small>
+          <b>{shelf.min}%</b>
+        </div>
+        <div>
+          <small>Último monitoramento</small>
+          <b>{shelf.updated}</b>
+        </div>
+        <div>
+          <small>Status</small>
+          <StatusBadge status={shelf.status} />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+function AlertModal({ alert, onClose }) {
+  return (
+    <Modal onClose={onClose}>
+      <div className="modal-kicker">DETALHES DO ALERTA</div>
+      <h2>
+        {alert.shelf} · {alert.message}
+      </h2>
+      <p className="muted">
+        Este alerta foi gerado a partir de uma leitura simulada do sensor de
+        estoque.
+      </p>
+      <div className="detail-grid">
+        <div>
+          <small>Prateleira</small>
+          <b>{alert.shelf}</b>
+        </div>
+        <div>
+          <small>Quando</small>
+          <b>{alert.time}</b>
+        </div>
+        <div>
+          <small>Classificação</small>
+          <StatusBadge status={alert.severity} />
+        </div>
+        <div>
+          <small>Situação</small>
+          <b>{alert.resolved ? "Resolvido" : "Pendente"}</b>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+function Login() {
+  const nav = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const submit = (e) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError("Preencha e-mail e senha para continuar.");
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      localStorage.setItem("smartshelf-auth", "true");
+      nav("/dashboard");
+    }, 650);
+  };
+  const demo = () => {
+    setEmail("admin@smartshelf.com");
+    setPassword("123456");
+    setError("");
+  };
+  return (
+    <div className="login-page">
+      <div className="login-visual">
+        <div className="brand">
+          <div className="brand-mark">
+            <Layers size={21} />
+          </div>
+          <span>
+            Smart<strong>Shelf</strong>
+          </span>
+        </div>
+        <div className="visual-copy">
+          <span className="eyebrow">
+            PRATELEIRAS INTELIGENTES COM MONITORAMENTO IoT
+          </span>
+          <h1>
+            O estoque que
+            <br />
+            <em>pensa</em> por você.
+          </h1>
+          <p>Monitoramento inteligente para o seu estoque.</p>
+          <div className="shelf-illustration">
+            <div className="sensor-tag">
+              <Radio size={16} /> SENSOR ATIVO
+            </div>
+            {[86, 42, 18].map((n, i) => (
+              <div className="illustrated-row" key={i}>
+                <span className="box" style={{ height: `${18 + n / 5}px` }} />
+                <span className="box small" />
+                <span className="box" />
+                <div className="rack">
+                  <i style={{ width: `${n}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="visual-foot">
+            <span>
+              <Wifi size={14} /> Sensores conectados
+            </span>
+            <span>
+              <Activity size={14} /> Dados em tempo real
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="login-panel">
+        <div className="login-card">
+          <div className="mobile-brand brand">
+            <div className="brand-mark">
+              <Layers size={19} />
+            </div>
+            <span>
+              Smart<strong>Shelf</strong>
+            </span>
+          </div>
+          <span className="eyebrow">BEM-VINDO DE VOLTA</span>
+          <h2>Acesse seu painel</h2>
+          <p className="muted">
+            Entre para acompanhar seus estoques inteligentes.
+          </p>
+          <form onSubmit={submit}>
+            <label>
+              E-mail
+              <input
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+            <label>
+              Senha
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+            <div className="form-row">
+              <label className="check">
+                <input type="checkbox" /> <span>Manter conectado</span>
+              </label>
+              <a href="#forgot" onClick={(e) => e.preventDefault()}>
+                Esqueci minha senha
+              </a>
+            </div>
+            {error && <div className="error">{error}</div>}
+            <button className="btn primary full" disabled={loading}>
+              {loading ? (
+                <>
+                  <RefreshCw className="spin" size={17} /> Entrando...
+                </>
+              ) : (
+                "Entrar"
+              )}
+            </button>
+          </form>
+          <div className="divider">
+            <span>ou</span>
+          </div>
+          <div className="demo-box">
+            <div>
+              <b>Modo demonstração</b>
+              <small>Explore o sistema com dados simulados</small>
+            </div>
+            <button
+              className="btn outline"
+              onClick={() => {
+                demo();
+                setTimeout(() => {
+                  localStorage.setItem("smartshelf-auth", "true");
+                  nav("/dashboard");
+                }, 150);
+              }}
+            >
+              Entrar como demo <ChevronRight size={16} />
+            </button>
+          </div>
+          <p className="login-note">Demo: admin@smartshelf.com · 123456</p>
+        </div>
+        <small className="copyright">
+          SmartShelf · Projeto Integrador — Cidades Inteligentes e IoT
+        </small>
+      </div>
+    </div>
+  );
+}
+function Header({ onMenu }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <header>
+      <button className="icon-btn menu-mobile" onClick={onMenu}>
+        <Menu size={21} />
+      </button>
+      <div>
+        <h1>
+          {
+            {
+              "/dashboard": "Dashboard",
+              "/prateleiras": "Prateleiras",
+              "/alertas": "Alertas",
+              "/historico": "Histórico",
+              "/configuracoes": "Configurações",
+            }[useLocation().pathname]
+          }
+        </h1>
+        <p className="muted">
+          {useLocation().pathname === "/dashboard"
+            ? "Visão geral do monitoramento das prateleiras"
+            : "Acompanhe e gerencie seus dados de estoque"}
+        </p>
+      </div>
+      <div className="header-actions">
+        <button className="notification-btn" onClick={() => setOpen(!open)}>
+          <Bell size={19} />
+          <i />
+        </button>
+        <div className="avatar">AD</div>
+        <div className="header-user">
+          <b>Administrador</b>
+          <small>Administrador</small>
+        </div>
+        {open && <NotificationPanel />}
+      </div>
+    </header>
+  );
+}
+function NotificationPanel() {
+  return (
+    <div className="notification-panel">
+      <div className="panel-heading">
+        <b>Notificações</b>
+        <span>3 novas</span>
+      </div>
+      {mockNotifications.map((n, i) => (
+        <div className="notification" key={i}>
+          <span className={`notif-dot ${i === 0 ? "critical" : ""}`}>
+            <Bell size={14} />
+          </span>
+          <div>
+            <b>{n.title}</b>
+            <small>{n.body}</small>
+            <small className="muted">{n.time}</small>
+          </div>
+        </div>
+      ))}
+      <button className="text-btn">
+        Ver todas as notificações <ChevronRight size={14} />
+      </button>
+    </div>
+  );
+}
+function Sidebar({ open, onClose }) {
+  const nav = useNavigate();
+  const links = [
+    ["/dashboard", "Dashboard", LayoutDashboard],
+    ["/prateleiras", "Prateleiras", Warehouse],
+    ["/alertas", "Alertas", TriangleAlert],
+    ["/historico", "Histórico", History],
+  ];
+  return (
+    <>
+      <aside className={open ? "open" : ""}>
+        <div className="sidebar-brand brand">
+          <div className="brand-mark">
+            <Layers size={19} />
+          </div>
+          <span>
+            Smart<strong>Shelf</strong>
+          </span>
+        </div>
+        <div className="sidebar-label">MENU PRINCIPAL</div>
+        {links.map(([to, label, Icon]) => (
+          <NavLink
+            key={to}
+            to={to}
+            onClick={onClose}
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            <Icon size={18} />
+            {label}
+            {label === "Alertas" && <span className="nav-count">5</span>}
+          </NavLink>
+        ))}
+        <div className="sidebar-label system">SISTEMA</div>
+        <NavLink
+          to="/configuracoes"
+          onClick={onClose}
+          className={({ isActive }) => (isActive ? "active" : "")}
+        >
+          <Settings size={18} />
+          Configurações
+        </NavLink>
+        <div className="sidebar-bottom">
+          <div className="side-user">
+            <div className="avatar">AD</div>
+            <div>
+              <b>Admin</b>
+              <small>Administrador</small>
+            </div>
+          </div>
+          <button
+            className="logout"
+            onClick={() => {
+              localStorage.removeItem("smartshelf-auth");
+              nav("/login");
+            }}
+          >
+            <LogOut size={17} />
+            Sair
+          </button>
+        </div>
+      </aside>
+      {open && <div className="sidebar-backdrop" onClick={onClose} />}
+    </>
+  );
+}
+function Layout({ children }) {
+  const [menu, setMenu] = useState(false);
+  return (
+    <div className="app-shell">
+      <Sidebar open={menu} onClose={() => setMenu(false)} />
+      <main>
+        <Header onMenu={() => setMenu(true)} />
+        {children}
+      </main>
+    </div>
+  );
+}
+function StatCard({ icon: Icon, label, value, trend, accent }) {
+  return (
+    <div className="stat-card">
+      <div className={`stat-icon ${accent}`}>
+        <Icon size={19} />
+      </div>
+      <div className="stat-content">
+        <span>{label}</span>
+        <strong>{value}</strong>
+        <small className={trend.startsWith("+") ? "positive" : ""}>
+          {trend}
+        </small>
+      </div>
+      <ArrowUpRight className="stat-arrow" size={16} />
+    </div>
+  );
+}
+function StockChart() {
+  const [period, setPeriod] = useState("7");
+  const data = period === "7" ? chart7 : chart30;
+  return (
+    <div className="panel chart-panel">
+      <div className="panel-title">
+        <div>
+          <h3>Monitoramento do estoque</h3>
+          <p className="muted">Nível médio dos produtos</p>
+        </div>
+        <div className="segmented">
+          <button
+            className={period === "7" ? "selected" : ""}
+            onClick={() => setPeriod("7")}
+          >
+            7 dias
+          </button>
+          <button
+            className={period === "30" ? "selected" : ""}
+            onClick={() => setPeriod("30")}
+          >
+            30 dias
+          </button>
+        </div>
+      </div>
+      <div className="chart">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data}>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="#e7eeeb"
+            />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#84918d" }}
+            />
+            <YAxis
+              domain={[0, 100]}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#84918d" }}
+              tickFormatter={(v) => `${v}%`}
+            />
+            <Tooltip
+              formatter={(v) => [`${v}%`, "Nível médio"]}
+              contentStyle={{ borderRadius: 10, border: "1px solid #e4ece8" }}
+            />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="#159a75"
+              strokeWidth={3}
+              dot={{ r: 4, fill: "#fff", stroke: "#159a75", strokeWidth: 2 }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+function RecentAlerts({ onView }) {
+  return (
+    <div className="panel">
+      <div className="panel-title">
+        <div>
+          <h3>Alertas recentes</h3>
+          <p className="muted">Acompanhe os últimos eventos</p>
+        </div>
+        <NavLink className="text-btn" to="/alertas">
+          Ver todos <ChevronRight size={14} />
+        </NavLink>
+      </div>
+      <div className="alert-list">
+        {mockAlerts.slice(0, 3).map((a) => (
+          <div className="alert-row" key={a.id}>
+            <span className={`alert-icon ${a.severity}`}>
+              {a.severity === "success" ? (
+                <CheckCircle2 size={17} />
+              ) : (
+                <TriangleAlert size={17} />
+              )}
+            </span>
+            <div className="alert-info">
+              <b>Prateleira {a.shelf}</b>
+              <span>{a.message}</span>
+            </div>
+            <div className="alert-time">{a.time}</div>
+            <button className="mini-btn" onClick={() => onView(a)}>
+              <Eye size={15} /> Visualizar
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function Dashboard() {
+  const [alert, setAlert] = useState(null);
+  return (
+    <div className="content">
+      <div className="stats-grid">
+        <StatCard
+          icon={Package}
+          label="Produtos monitorados"
+          value="128"
+          trend="+8% este mês"
+          accent="teal"
+        />
+        <StatCard
+          icon={Warehouse}
+          label="Prateleiras monitoradas"
+          value="12"
+          trend="+2 este mês"
+          accent="blue"
+        />
+        <StatCard
+          icon={TriangleAlert}
+          label="Estoque baixo"
+          value="08"
+          trend="2 críticos"
+          accent="orange"
+        />
+        <StatCard
+          icon={Bell}
+          label="Alertas ativos"
+          value="05"
+          trend="-12% esta semana"
+          accent="red"
+        />
+      </div>
+      <div className="iot-banner">
+        <div className="iot-icon">
+          <Radio size={20} />
+        </div>
+        <div>
+          <b>
+            Monitoramento IoT <span className="live-dot" /> Ao vivo
+          </b>
+          <p>
+            Os dados apresentados nesta demonstração representam leituras
+            simuladas de sensores instalados nas prateleiras.
+          </p>
+        </div>
+        <div className="iot-flow">
+          <span>SENSOR</span>
+          <i>→</i>
+          <span>ESP32</span>
+          <i>→</i>
+          <span>DADOS</span>
+          <i>→</i>
+          <span>ALERTA</span>
+        </div>
+      </div>
+      <div className="dashboard-grid">
+        <StockChart />
+        <div className="panel shelf-status">
+          <div className="panel-title">
+            <div>
+              <h3>Status das prateleiras</h3>
+              <p className="muted">Visão por nível de estoque</p>
+            </div>
+            <NavLink className="text-btn" to="/prateleiras">
+              Ver todas <ChevronRight size={14} />
+            </NavLink>
+          </div>
+          {mockShelves.slice(0, 4).map((s) => (
+            <div className="shelf-row" key={s.id}>
+              <div className="shelf-name">
+                <span className={`shelf-dot ${s.status}`} />
+                <b>{s.id}</b>
+                <small>{s.products} produtos</small>
+              </div>
+              <div className="level-wrap">
+                <div className="progress">
+                  <i className={s.status} style={{ width: `${s.level}%` }} />
+                </div>
+                <strong>{s.level}%</strong>
+              </div>
+              <StatusBadge status={s.status} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="dashboard-grid lower">
+        <RecentAlerts onView={setAlert} />
+        <div className="panel">
+          <div className="panel-title">
+            <div>
+              <h3>Atividade recente</h3>
+              <p className="muted">Últimas atualizações</p>
+            </div>
+            <Activity size={19} className="muted" />
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>Prateleira</th>
+                  <th>Nível</th>
+                  <th>Atualização</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockProducts.map((p) => (
+                  <tr key={p.name}>
+                    <td>
+                      <b>{p.name}</b>
+                    </td>
+                    <td>{p.shelf}</td>
+                    <td>
+                      <span
+                        className={`level-text ${p.level < 30 ? "danger" : ""}`}
+                      >
+                        {p.level}%
+                      </span>
+                    </td>
+                    <td className="muted">{p.updated}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {alert && <AlertModal alert={alert} onClose={() => setAlert(null)} />}
+    </div>
+  );
+}
+function Shelves() {
+  const [filter, setFilter] = useState("all");
+  const [selected, setSelected] = useState(null);
+  const shown =
+    filter === "all"
+      ? mockShelves
+      : mockShelves.filter((s) => s.status === filter);
+  return (
+    <div className="content">
+      <div className="page-intro">
+        <div>
+          <h2>Prateleiras</h2>
+          <p className="muted">
+            Gerencie e acompanhe todas as prateleiras inteligentes.
+          </p>
+        </div>
+        <button className="btn outline">
+          <RefreshCw size={16} /> Atualizar dados
+        </button>
+      </div>
+      <div className="filter-tabs">
+        {[
+          ["all", "Todas"],
+          ["normal", "Normal"],
+          ["attention", "Atenção"],
+          ["critical", "Crítico"],
+        ].map(([v, l]) => (
+          <button
+            key={v}
+            className={filter === v ? "active" : ""}
+            onClick={() => setFilter(v)}
+          >
+            {l}
+            <span>
+              {v === "all"
+                ? mockShelves.length
+                : mockShelves.filter((s) => s.status === v).length}
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="shelf-cards">
+        {shown.map((s) => (
+          <div className="shelf-card" key={s.id}>
+            <div className="card-top">
+              <div className={`shelf-big-icon ${s.status}`}>
+                <Warehouse size={21} />
+              </div>
+              <StatusBadge status={s.status} />
+            </div>
+            <h3>Prateleira {s.id}</h3>
+            <div className="big-level">{s.level}%</div>
+            <div className="progress large">
+              <i className={s.status} style={{ width: `${s.level}%` }} />
+            </div>
+            <div className="shelf-meta">
+              <span>
+                <Package size={15} /> {s.products} produtos
+              </span>
+              <span>
+                <RefreshCw size={14} /> {s.updated}
+              </span>
+            </div>
+            <button className="btn outline full" onClick={() => setSelected(s)}>
+              Ver detalhes <ChevronRight size={15} />
+            </button>
+          </div>
+        ))}
+      </div>
+      {!shown.length && (
+        <div className="empty">
+          <SlidersHorizontal size={28} />
+          <b>Nenhuma prateleira encontrada</b>
+          <span>Tente outro filtro.</span>
+        </div>
+      )}
+      {selected && (
+        <ShelfModal shelf={selected} onClose={() => setSelected(null)} />
+      )}
+    </div>
+  );
+}
+function Alerts() {
+  const [items, setItems] = useState(mockAlerts);
+  const [filter, setFilter] = useState("all");
+  const [selected, setSelected] = useState(null);
+  const shown = items.filter(
+    (a) =>
+      filter === "all" ||
+      (filter === "resolved"
+        ? a.resolved
+        : a.severity === filter && !a.resolved),
+  );
+  return (
+    <div className="content">
+      <div className="page-intro">
+        <div>
+          <h2>Alertas</h2>
+          <p className="muted">
+            Acompanhe ocorrências e mantenha seu estoque em dia.
+          </p>
+        </div>
+        <div className="alert-summary">
+          <b>{items.filter((a) => !a.resolved).length}</b> alertas pendentes
+        </div>
+      </div>
+      <div className="filter-tabs">
+        {[
+          ["all", "Todos"],
+          ["critical", "Críticos"],
+          ["attention", "Atenção"],
+          ["resolved", "Resolvidos"],
+        ].map(([v, l]) => (
+          <button
+            key={v}
+            className={filter === v ? "active" : ""}
+            onClick={() => setFilter(v)}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+      <div className="panel table-panel">
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Prateleira</th>
+                <th>Mensagem</th>
+                <th>Status</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((a) => (
+                <tr key={a.id}>
+                  <td className="muted">{a.time}</td>
+                  <td>
+                    <b>{a.shelf}</b>
+                  </td>
+                  <td>{a.message}</td>
+                  <td>
+                    <StatusBadge status={a.resolved ? "success" : a.severity} />
+                  </td>
+                  <td>
+                    <div className="action-row">
+                      <button
+                        className="mini-btn"
+                        onClick={() => setSelected(a)}
+                      >
+                        <Eye size={15} /> Ver
+                      </button>
+                      {!a.resolved && (
+                        <button
+                          className="resolve-btn"
+                          onClick={() =>
+                            setItems(
+                              items.map((x) =>
+                                x.id === a.id ? { ...x, resolved: true } : x,
+                              ),
+                            )
+                          }
+                        >
+                          <Check size={15} /> Resolver
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!shown.length && (
+          <div className="empty">Nenhum alerta neste filtro.</div>
+        )}
+      </div>
+      {selected && (
+        <AlertModal alert={selected} onClose={() => setSelected(null)} />
+      )}
+    </div>
+  );
+}
+function HistoryPage() {
+  const [shelf, setShelf] = useState("Todas");
+  const data = mockHistory.filter(
+    (h) => shelf === "Todas" || h.shelf === shelf,
+  );
+  return (
+    <div className="content">
+      <div className="page-intro">
+        <div>
+          <h2>Histórico de Monitoramento</h2>
+          <p className="muted">Consulte as leituras simuladas dos sensores.</p>
+        </div>
+        <div className="history-filters">
+          <select>
+            <option>Últimos 30 dias</option>
+            <option>Últimos 7 dias</option>
+          </select>
+          <select value={shelf} onChange={(e) => setShelf(e.target.value)}>
+            <option>Todas</option>
+            {mockShelves.slice(0, 4).map((s) => (
+              <option key={s.id}>{s.id}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <StockChart />
+      <div className="panel table-panel history-table">
+        <div className="panel-title">
+          <h3>Registros de leitura</h3>
+          <span className="muted">{data.length} registros</span>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Horário</th>
+                <th>Prateleira</th>
+                <th>Produto</th>
+                <th>Nível</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((h, i) => (
+                <tr key={i}>
+                  <td>{h.date}</td>
+                  <td className="muted">{h.time}</td>
+                  <td>
+                    <b>{h.shelf}</b>
+                  </td>
+                  <td>{h.product}</td>
+                  <td>{h.level}%</td>
+                  <td>
+                    <StatusBadge
+                      status={
+                        h.status === "Normal"
+                          ? "normal"
+                          : h.status === "Atenção"
+                            ? "attention"
+                            : "critical"
+                      }
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+function SettingsPage() {
+  const [saved, setSaved] = useState(false);
+  const [name, setName] = useState(
+    localStorage.getItem("smartshelf-name") || "Administrador",
+  );
+  const save = (e) => {
+    e.preventDefault();
+    localStorage.setItem("smartshelf-name", name);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2200);
+  };
+  return (
+    <div className="content">
+      <div className="page-intro">
+        <div>
+          <h2>Configurações</h2>
+          <p className="muted">Personalize sua experiência no SmartShelf.</p>
+        </div>
+      </div>
+      <form className="settings-grid" onSubmit={save}>
+        <div className="panel settings-section">
+          <div className="section-heading">
+            <div className="settings-icon">
+              <Settings size={18} />
+            </div>
+            <div>
+              <h3>Perfil</h3>
+              <p className="muted">Informações da sua conta</p>
+            </div>
+          </div>
+          <label>
+            Nome
+            <input value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label>
+            E-mail
+            <input value="admin@smartshelf.com" readOnly />
+          </label>
+        </div>
+        <div className="panel settings-section">
+          <div className="section-heading">
+            <div className="settings-icon">
+              <Bell size={18} />
+            </div>
+            <div>
+              <h3>Preferências</h3>
+              <p className="muted">Escolha como deseja receber atualizações</p>
+            </div>
+          </div>
+          {[
+            "Receber alertas de estoque",
+            "Notificações no navegador",
+            "Atualização automática dos dados",
+          ].map((x, i) => (
+            <label className="toggle-row" key={x}>
+              <span>
+                <b>{x}</b>
+                <small>
+                  {i === 0
+                    ? "Seja avisado quando o estoque estiver baixo"
+                    : i === 1
+                      ? "Receba novidades importantes do sistema"
+                      : "Atualizar leituras a cada 5 minutos"}
+                </small>
+              </span>
+              <input type="checkbox" defaultChecked={i !== 1} />
+              <i />
+            </label>
+          ))}
+        </div>
+        <div className="settings-actions">
+          <button className="btn primary" type="submit">
+            {saved ? (
+              <>
+                <Check size={16} /> Alterações salvas
+              </>
+            ) : (
+              "Salvar alterações"
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+function Protected() {
+  return localStorage.getItem("smartshelf-auth") ? (
+    <Layout>
+      <Routes>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/prateleiras" element={<Shelves />} />
+        <Route path="/alertas" element={<Alerts />} />
+        <Route path="/historico" element={<HistoryPage />} />
+        <Route path="/configuracoes" element={<SettingsPage />} />
+      </Routes>
+    </Layout>
+  ) : (
+    <Navigate to="/login" replace />
+  );
+}
+function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={
+          <Navigate
+            to={
+              localStorage.getItem("smartshelf-auth") ? "/dashboard" : "/login"
+            }
+            replace
+          />
+        }
+      />
+      <Route path="*" element={<Protected />} />
+    </Routes>
+  );
+}
+createRoot(document.getElementById("root")).render(
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>,
+);
