@@ -39,12 +39,8 @@ function build(shelves, products, readings, alerts) {
   const latestByProduct = new Map();
 
   readings.forEach((reading) => {
-    if (!latestByShelf.has(reading.prateleira_id)) {
-      latestByShelf.set(reading.prateleira_id, reading);
-    }
-    if (reading.produto_id && !latestByProduct.has(reading.produto_id)) {
-      latestByProduct.set(reading.produto_id, reading);
-    }
+    latestByShelf.set(reading.prateleira_id, reading);
+    if (reading.produto_id) latestByProduct.set(reading.produto_id, reading);
   });
 
   const mappedProducts = products.map((product) => {
