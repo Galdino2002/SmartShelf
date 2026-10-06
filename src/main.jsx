@@ -41,15 +41,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  mockShelves,
-  mockProducts,
-  mockAlerts,
-  mockHistory,
-  mockNotifications,
-  chart7,
-  chart30,
-} from "./data/mockData";
+import { useSmartShelfData, resolveAlert } from "./data/useSmartShelfData";
 import { StatusBadge, ProgressBar, IconButton } from "./components/atoms";
 import "./styles.css";
 
