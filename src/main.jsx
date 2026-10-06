@@ -133,6 +133,8 @@ function AlertModal({ alert, onClose }) {
 }
 function Header({ onMenu }) {
   const [open, setOpen] = useState(false);
+  const { alerts } = useSmartShelfData();
+  const activeAlerts = alerts.filter((alert) => !alert.resolved).length;
   return (
     <header>
       <button className="icon-btn menu-mobile" onClick={onMenu}>
@@ -159,7 +161,7 @@ function Header({ onMenu }) {
       <div className="header-actions">
         <button className="notification-btn" onClick={() => setOpen(!open)}>
           <Bell size={19} />
-          <i />
+          {activeAlerts > 0 && <i />}
         </button>
         <div className="avatar">SS</div>
         <div className="header-user">
@@ -172,12 +174,12 @@ function Header({ onMenu }) {
   );
 }
 function NotificationPanel() {
-  const { notifications } = useSmartShelfData();
+  const { notifications, alerts } = useSmartShelfData();
   return (
     <div className="notification-panel">
       <div className="panel-heading">
         <b>Notificações</b>
-        <span>{notifications.filter((item) => item.title === "Alerta ativo").length} ativas</span>
+        <span>{alerts.filter((item) => !item.resolved).length} ativas</span>
       </div>
       {notifications.map((n, i) => (
         <div className="notification" key={i}>
