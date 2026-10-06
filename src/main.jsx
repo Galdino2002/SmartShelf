@@ -550,6 +550,7 @@ function RecentAlerts({ onView }) {
 }
 function Dashboard() {
   const [alert, setAlert] = useState(null);
+  const { shelves, products } = useSmartShelfData();
   return (
     <div className="content">
       <div className="stats-grid">
@@ -617,7 +618,7 @@ function Dashboard() {
               Ver todas <ChevronRight size={14} />
             </NavLink>
           </div>
-          {mockShelves.slice(0, 4).map((s) => (
+          {shelves.slice(0, 4).map((s) => (
             <div className="shelf-row" key={s.id}>
               <div className="shelf-name">
                 <span className={`shelf-dot ${s.status}`} />
@@ -656,7 +657,7 @@ function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {mockProducts.map((p) => (
+                {products.map((p) => (
                   <tr key={p.name}>
                     <td>
                       <b>{p.name}</b>
@@ -686,8 +687,8 @@ function Shelves() {
   const [selected, setSelected] = useState(null);
   const shown =
     filter === "all"
-      ? mockShelves
-      : mockShelves.filter((s) => s.status === filter);
+      ? shelves
+      : shelves.filter((s) => s.status === filter);
   return (
     <div className="content">
       <div className="page-intro">
@@ -716,8 +717,8 @@ function Shelves() {
             {l}
             <span>
               {v === "all"
-                ? mockShelves.length
-                : mockShelves.filter((s) => s.status === v).length}
+                ? shelves.length
+                : shelves.filter((s) => s.status === v).length}
             </span>
           </button>
         ))}
@@ -884,7 +885,7 @@ function HistoryPage() {
           </select>
           <select value={shelf} onChange={(e) => setShelf(e.target.value)}>
             <option>Todas</option>
-            {mockShelves.slice(0, 4).map((s) => (
+            {shelves.slice(0, 4).map((s) => (
               <option key={s.id}>{s.id}</option>
             ))}
           </select>
