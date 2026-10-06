@@ -2228,3 +2228,51 @@ td {
     margin-top: 42px;
   }
 }
+
+
+/* Estado da conexão e dados reais do protótipo */
+.connection-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.connection-error strong,
+.connection-error span {
+  display: block;
+}
+
+.connection-error span {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+
+.settings-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 13px 0;
+  border-bottom: 1px solid #edf2ef;
+  font-size: 12px;
+}
+
+.settings-value-row:last-child {
+  border-bottom: 0;
+}
+
+.settings-value-row > span {
+  color: #75837e;
+}
+
+.settings-value-row > b {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.settings-note {
+  margin-top: 18px;
+  font-size: 12px;
+}
