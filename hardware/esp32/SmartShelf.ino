@@ -118,10 +118,12 @@ void setup() {
 
   if (CALIBRATION_FACTOR == 0.0f) {
     Serial.println("ATENÇÃO: CALIBRATION_FACTOR está em zero. Calibre a balança antes de enviar dados.");
-  } else {
+  } else if (scale.is_ready()) {
     scale.set_scale(CALIBRATION_FACTOR);
     scale.tare();
     Serial.println("HX711 calibrado e tara realizada.");
+  } else {
+    Serial.println("O HX711 ainda não está pronto. Confira a ligação antes de usar.");
   }
 
   connectWiFi();
