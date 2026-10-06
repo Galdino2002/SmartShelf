@@ -18,7 +18,37 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publishable
 
 A chave publishable pode estar no frontend. **Nunca coloque uma chave `service_role` ou secret key no navegador nem no ESP32.**
 
-## 2. Banco de dados
+## 2. Publicar no Vercel
+
+O projeto já está configurado para Vercel com Vite e fallback das rotas do React.
+
+### Pela dashboard do Vercel
+
+1. Faça push do projeto para o GitHub.
+2. No Vercel, selecione **Add New Project** e importe o repositório.
+3. Mantenha o framework detectado como **Vite**.
+4. Em **Settings → Environment Variables**, adicione:
+
+   - `VITE_SUPABASE_URL`: URL do projeto Supabase.
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`: chave publishable do Supabase.
+
+5. Selecione os ambientes desejados (Production, Preview e Development).
+6. Clique em **Deploy**.
+
+O `vercel.json` define `npm run build`, publica a pasta `dist` e redireciona rotas como `/dashboard`, `/produtos` e `/historico` para o entrypoint do React. Isso evita erro 404 ao atualizar uma página interna.
+
+### Pela CLI
+
+```bash
+npm install
+npm run build
+npx vercel
+npx vercel --prod
+```
+
+Não faça commit de `.env.local`. As variáveis do Vercel devem ser cadastradas no painel ou na CLI.
+
+## 3. Banco de dados
 
 O painel lê estas tabelas:
 
@@ -29,9 +59,9 @@ O painel lê estas tabelas:
 
 O navegador consulta os dados na abertura e atualiza a consulta a cada 15 segundos. Isso é atualização periódica via REST, não WebSocket em tempo real. Resolver um alerta atualiza o registro no Supabase. Um gatilho PostgreSQL cria alertas de estoque vazio, estoque baixo e sobrepeso a partir das novas leituras, evitando repetir alertas enquanto o mesmo problema continuar ativo.
 
-O projeto tem uma prateleira cadastrada. O painel fica sem leituras reais até o ESP32 enviar a primeira medição.
+O painel não cria dados de demonstração. Quando não existe leitura, a interface exibe explicitamente “Sem leitura” e mantém peso, quantidade e capacidade de uso sem valores inventados. As páginas disponíveis são Dashboard, Prateleiras, Produtos, Alertas, Histórico e Configurações.
 
-## 3. Hardware
+## 4. Hardware
 
 - ESP32 + célula de carga de 5 kg + HX711.
 - HX711 DT/DOUT → GPIO 4 do ESP32.
@@ -43,11 +73,11 @@ O firmware está em `hardware/esp32/SmartShelf.ino`. Abra no Arduino IDE, instal
 
 **Calibração obrigatória:** o fator da célula de carga varia por montagem. Não considere os valores em kg confiáveis até calibrar o HX711 com um peso conhecido. Ajuste também `UNIT_WEIGHT_KG` ao peso real de cada unidade do produto cadastrado.
 
-## 4. Fluxo
+## 5. Fluxo
 
 ESP32 + HX711 → Wi-Fi → Supabase REST/PostgreSQL → painel SmartShelf.
 
-## 5. Limites do protótipo
+## 6. Limites do protótipo
 
 - Sem autenticação de usuários; o painel é para demonstração local.
 - O navegador atualiza a cada 15 segundos.

@@ -5,11 +5,16 @@ export const statusLabels = {
   attention: "Atenção",
   critical: "Crítico",
   success: "Resolvido",
+  "no-reading": "Sem leitura",
 };
 
 export function StatusBadge({ status }) {
   return (
-    <span className={`badge ${status}`} role="status">
+    <span
+      className={`badge ${status}`}
+      role="status"
+      aria-label={`Status: ${statusLabels[status] || status}`}
+    >
       {statusLabels[status] || status}
     </span>
   );
@@ -40,5 +45,29 @@ export function IconButton({ label, children, className = "", ...props }) {
     >
       {children}
     </button>
+  );
+}
+
+export function LoadingState({ label = "Carregando dados..." }) {
+  return (
+    <div className="loading-state" role="status" aria-live="polite">
+      <span className="loading-spinner" aria-hidden="true" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+export function EmptyState({ icon: Icon, title, description, action }) {
+  return (
+    <div className="empty-state">
+      {Icon && (
+        <div className="empty-icon" aria-hidden="true">
+          <Icon size={24} />
+        </div>
+      )}
+      <strong>{title}</strong>
+      {description && <span>{description}</span>}
+      {action}
+    </div>
   );
 }

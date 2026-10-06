@@ -1,678 +1,1454 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  BrowserRouter,
-  useLocation,
-  Navigate,
-  Routes,
-  Route,
-  NavLink,
-} from "react-router-dom";
-import {
-  LayoutDashboard,
-  Warehouse,
-  TriangleAlert,
-  History,
-  Settings,
-  Bell,
-  Package,
-  Layers,
   Activity,
-  ArrowUpRight,
-  Menu,
-  ChevronRight,
-  X,
-  CheckCircle2,
-  Wifi,
-  Radio,
-  RefreshCw,
-  Eye,
+  AlertTriangle,
+  Bell,
   Check,
+  ChevronRight,
+  Clock3,
+  Database,
+  History,
+  Layers3,
+  Menu,
+  Package,
+  RefreshCw,
+  Settings,
   SlidersHorizontal,
+  Warehouse,
+  Wifi,
+  X,
 } from "lucide-react";
 import {
-  LineChart,
+  BrowserRouter,
+  Navigate,
+  NavLink,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
+import {
+  CartesianGrid,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from "recharts";
-import { useSmartShelfData, resolveAlert, refreshData } from "./data/useSmartShelfData";
-import { StatusBadge, ProgressBar, IconButton } from "./components/atoms";
+import {
+  EmptyState,
+  IconButton,
+  LoadingState,
+  ProgressBar,
+  StatusBadge,
+} from "./components/atoms";
+import {
+  refreshData,
+  resolveAlert,
+  useSmartShelfData,
+} from "./data/useSmartShelfData";
 import "./styles.css";
 
-function Modal({ children, onClose }) {
+const formatTime = (value) =>
+  value
+    ? new Date(value).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : "Nenhuma leitura registrada";
+
+const formatWeight = (value) =>
+  value == null
+    ? "—"
+    : `${Number(value).toLocaleString("pt-BR", {
+        maximumFractionDigits: 3,
+      })} kg`;
+
+function PageHeader({ title, description, action }) {
+  return (
+    <div className="page-header">
+      <div>
+        <p className="section-kicker">SMARTSHELF / MONITORAMENTO</p>
+        <h1>{title}</h1>
+        <p className="page-description">{description}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function Modal({ title, children, onClose }) {
   useEffect(() => {
-    const close = (e) => e.key === "Escape" && onClose();
+    const close = (event) => event.key === "Escape" && onClose();
     document.addEventListener("keydown", close);
     return () => document.removeEventListener("keydown", close);
   }, [onClose]);
+
   return (
     <div className="overlay" onClick={onClose}>
-      <div
+      <section
         className="modal"
         role="dialog"
         aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
+        aria-labelledby="modal-title"
+        onClick={(event) => event.stopPropagation()}
       >
         <IconButton label="Fechar janela" className="close" onClick={onClose}>
           <X size={18} />
         </IconButton>
+        <p className="section-kicker">DETALHES</p>
+        <h2 id="modal-title">{title}</h2>
         {children}
-      </div>
+      </section>
     </div>
   );
 }
-function ShelfModal({ shelf, onClose }) {
+
+function ErrorState({ error, onRetry }) {
   return (
-    <Modal onClose={onClose}>
-      <div className="modal-kicker">DETALHES DA PRATELEIRA</div>
-      <h2>Prateleira {shelf.id}</h2>
-      <div className="detail-level">
-        <strong>{shelf.level}%</strong>
-        <span>Nível atual</span>
-      </div>
-      <ProgressBar
-        value={shelf.level}
-        status={shelf.status}
-        label={`Nível da prateleira ${shelf.id}`}
-      />
-      <div className="detail-grid">
-        <div>
-          <small>Produtos</small>
-          <b>{shelf.products} itens</b>
-        </div>
-        <div>
-          <small>Estoque mínimo</small>
-          <b>{shelf.min}%</b>
-        </div>
-        <div>
-          <small>Último monitoramento</small>
-          <b>{shelf.updated}</b>
-        </div>
-        <div>
-          <small>Status</small>
-          <StatusBadge status={shelf.status} />
-        </div>
-      </div>
-    </Modal>
-  );
-}
-function AlertModal({ alert, onClose }) {
-  return (
-    <Modal onClose={onClose}>
-      <div className="modal-kicker">DETALHES DO ALERTA</div>
-      <h2>
-        {alert.shelf} · {alert.message}
-      </h2>
-      <p className="muted">
-        Este alerta foi registrado no banco de dados do SmartShelf.
-      </p>
-      <div className="detail-grid">
-        <div>
-          <small>Prateleira</small>
-          <b>{alert.shelf}</b>
-        </div>
-        <div>
-          <small>Quando</small>
-          <b>{alert.time}</b>
-        </div>
-        <div>
-          <small>Classificação</small>
-          <StatusBadge status={alert.severity} />
-        </div>
-        <div>
-          <small>Situação</small>
-          <b>{alert.resolved ? "Resolvido" : "Pendente"}</b>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-function Header({ onMenu }) {
-  const [open, setOpen] = useState(false);
-  const { alerts } = useSmartShelfData();
-  const activeAlerts = alerts.filter((alert) => !alert.resolved).length;
-  return (
-    <header>
-      <button className="icon-btn menu-mobile" onClick={onMenu}>
-        <Menu size={21} />
-      </button>
+    <div className="error-state" role="alert">
+      <AlertTriangle size={20} aria-hidden="true" />
       <div>
-        <h1>
-          {
-            {
-              "/dashboard": "Dashboard",
-              "/prateleiras": "Prateleiras",
-              "/alertas": "Alertas",
-              "/historico": "Histórico",
-              "/configuracoes": "Configurações",
-            }[useLocation().pathname]
-          }
-        </h1>
-        <p className="muted">
-          {useLocation().pathname === "/dashboard"
-            ? "Visão geral do monitoramento das prateleiras"
-            : "Acompanhe e gerencie seus dados de estoque"}
-        </p>
+        <strong>Não foi possível carregar os dados.</strong>
+        <p>{error}</p>
       </div>
-      <div className="header-actions">
-        <button className="notification-btn" onClick={() => setOpen(!open)}>
-          <Bell size={19} />
-          {activeAlerts > 0 && <i />}
+      <button className="button secondary" type="button" onClick={onRetry}>
+        Tentar novamente
+      </button>
+    </div>
+  );
+}
+
+function ConnectionStatus({ loading, error, latestReadingAt, lastUpdated }) {
+  const online = !loading && !error;
+  return (
+    <div className={`connection-status ${online ? "online" : "offline"}`}>
+      <span className="status-dot" aria-hidden="true" />
+      <span>
+        {online
+          ? "Sistema online"
+          : loading
+            ? "Consultando..."
+            : "Atenção na conexão"}
+      </span>
+      <small>
+        Última leitura: {formatTime(latestReadingAt)} · Sync:{" "}
+        {formatTime(lastUpdated)}
+      </small>
+    </div>
+  );
+}
+
+function Header({ onMenu }) {
+  const location = useLocation();
+  const { alerts, loading, error, latestReadingAt, lastUpdated } =
+    useSmartShelfData();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const activeAlerts = alerts.filter((alert) => !alert.resolved).length;
+  const titles = {
+    "/dashboard": ["Dashboard", "Visão geral do estoque e dos sensores"],
+    "/prateleiras": [
+      "Prateleiras",
+      "Acompanhe ocupação, capacidade e leituras",
+    ],
+    "/produtos": ["Produtos", "Consulte os produtos monitorados"],
+    "/alertas": ["Alertas", "Monitore eventos e resolva ocorrências"],
+    "/historico": ["Histórico", "Consulte as leituras reais dos sensores"],
+    "/configuracoes": ["Configurações", "Estado da conexão e do hardware"],
+  };
+  const [title, description] =
+    titles[location.pathname] || titles["/dashboard"];
+
+  return (
+    <header className="topbar">
+      <button
+        className="menu-button"
+        type="button"
+        aria-label="Abrir menu"
+        onClick={onMenu}
+      >
+        <Menu size={20} />
+      </button>
+      <div className="topbar-title">
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </div>
+      <div className="topbar-actions">
+        <ConnectionStatus
+          loading={loading}
+          error={error}
+          latestReadingAt={latestReadingAt}
+          lastUpdated={lastUpdated}
+        />
+        <button
+          className="icon-button notification-button"
+          type="button"
+          aria-label={`${activeAlerts} alertas ativos`}
+          aria-expanded={notificationsOpen}
+          onClick={() => setNotificationsOpen((value) => !value)}
+        >
+          <Bell size={18} />
+          {activeAlerts > 0 && (
+            <span className="notification-count">{activeAlerts}</span>
+          )}
         </button>
-        <div className="avatar">SS</div>
-        <div className="header-user">
-          <b>SmartShelf</b>
-          <small>Dados do Supabase</small>
-        </div>
-        {open && <NotificationPanel />}
+        {notificationsOpen && <NotificationPanel />}
+        <button className="avatar" type="button" aria-label="Perfil SmartShelf">
+          SS
+        </button>
       </div>
     </header>
   );
 }
+
 function NotificationPanel() {
-  const { notifications, alerts } = useSmartShelfData();
+  const { notifications } = useSmartShelfData();
   return (
-    <div className="notification-panel">
+    <div className="notification-panel" role="region" aria-label="Notificações">
       <div className="panel-heading">
-        <b>Notificações</b>
-        <span>{alerts.filter((item) => !item.resolved).length} ativas</span>
+        <strong>Notificações</strong>
+        <NavLink to="/alertas">Ver alertas</NavLink>
       </div>
-      {notifications.map((n, i) => (
-        <div className="notification" key={i}>
-          <span className={`notif-dot ${i === 0 ? "critical" : ""}`}>
-            <Bell size={14} />
-          </span>
-          <div>
-            <b>{n.title}</b>
-            <small>{n.body}</small>
-            <small className="muted">{n.time}</small>
+      {notifications.length ? (
+        notifications.map((notification, index) => (
+          <div
+            className="notification-item"
+            key={`${notification.time}-${index}`}
+          >
+            <span className={`notification-icon ${notification.severity}`}>
+              <Bell size={14} />
+            </span>
+            <div>
+              <strong>{notification.title}</strong>
+              <span>{notification.body}</span>
+              <small>{notification.time}</small>
+            </div>
           </div>
-        </div>
-      ))}
-      <button className="text-btn">
-        Ver todas as notificações <ChevronRight size={14} />
-      </button>
+        ))
+      ) : (
+        <EmptyState
+          title="Tudo em dia"
+          description="Nenhuma notificação nova."
+        />
+      )}
     </div>
   );
 }
+
 function Sidebar({ open, onClose }) {
-  const { alerts } = useSmartShelfData();
+  const { alerts, loading, error, lastUpdated } = useSmartShelfData();
   const links = [
-    ["/dashboard", "Dashboard", LayoutDashboard],
-    ["/prateleiras", "Prateleiras", Warehouse],
-    ["/alertas", "Alertas", TriangleAlert],
-    ["/historico", "Histórico", History],
+    { section: "VISÃO GERAL", items: [["/dashboard", "Dashboard", Activity]] },
+    {
+      section: "ESTOQUE",
+      items: [
+        ["/prateleiras", "Prateleiras", Warehouse],
+        ["/produtos", "Produtos", Package],
+      ],
+    },
+    {
+      section: "MONITORAMENTO",
+      items: [
+        ["/alertas", "Alertas", AlertTriangle],
+        ["/historico", "Histórico", History],
+      ],
+    },
+    {
+      section: "SISTEMA",
+      items: [["/configuracoes", "Configurações", Settings]],
+    },
   ];
+  const online = !loading && !error;
+
   return (
     <>
-      <aside className={open ? "open" : ""}>
-        <div className="sidebar-brand brand">
+      <aside
+        className={`sidebar ${open ? "open" : ""}`}
+        aria-label="Navegação principal"
+      >
+        <div className="brand-block">
           <div className="brand-mark">
-            <Layers size={19} />
+            <Layers3 size={20} />
           </div>
-          <span>
-            Smart<strong>Shelf</strong>
-          </span>
+          <div>
+            <strong>
+              Smart<span>Shelf</span>
+            </strong>
+            <small>Monitoramento inteligente</small>
+          </div>
         </div>
-        <div className="sidebar-label">MENU PRINCIPAL</div>
-        {links.map(([to, label, Icon]) => (
-          <NavLink
-            key={to}
-            to={to}
-            onClick={onClose}
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            <Icon size={18} />
-            {label}
-            {label === "Alertas" && <span className="nav-count">{alerts.filter((alert) => !alert.resolved).length}</span>}
-          </NavLink>
-        ))}
-        <div className="sidebar-label system">SISTEMA</div>
-        <NavLink
-          to="/configuracoes"
-          onClick={onClose}
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
-          <Settings size={18} />
-          Configurações
-        </NavLink>
-        <div className="sidebar-bottom">
-          <div className="side-user">
-            <div className="avatar">SS</div>
-            <div><b>SmartShelf</b><small>Protótipo IoT</small></div>
+        <nav className="sidebar-nav">
+          {links.map(({ section, items }) => (
+            <div className="nav-group" key={section}>
+              <span className="nav-label">{section}</span>
+              {items.map(([to, label, Icon]) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    isActive ? "nav-link active" : "nav-link"
+                  }
+                >
+                  <Icon size={17} />
+                  <span>{label}</span>
+                  {label === "Alertas" &&
+                    alerts.filter((alert) => !alert.resolved).length > 0 && (
+                      <b className="nav-count">
+                        {alerts.filter((alert) => !alert.resolved).length}
+                      </b>
+                    )}
+                </NavLink>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <div className="system-card">
+            <div className={`status-dot ${online ? "online" : "offline"}`} />
+            <div>
+              <strong>
+                {online
+                  ? "Sistema online"
+                  : loading
+                    ? "Consultando dados"
+                    : "Conexão indisponível"}
+              </strong>
+              <small>Última sincronização: {formatTime(lastUpdated)}</small>
+            </div>
           </div>
-          <button className="logout" onClick={refreshData}>
-            <RefreshCw size={17} /> Atualizar dados
+          <button
+            className="refresh-link"
+            type="button"
+            onClick={refreshData}
+            disabled={loading}
+          >
+            <RefreshCw size={16} className={loading ? "spin" : ""} /> Atualizar
+            dados
           </button>
         </div>
       </aside>
-      {open && <div className="sidebar-backdrop" onClick={onClose} />}
+      {open && (
+        <button
+          className="sidebar-backdrop"
+          type="button"
+          aria-label="Fechar menu"
+          onClick={onClose}
+        />
+      )}
     </>
   );
 }
+
 function Layout({ children }) {
-  const [menu, setMenu] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div className="app-shell">
-      <Sidebar open={menu} onClose={() => setMenu(false)} />
-      <main>
-        <Header onMenu={() => setMenu(true)} />
+      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <main className="main-content">
+        <Header onMenu={() => setMenuOpen(true)} />
         {children}
       </main>
     </div>
   );
 }
-function StatCard({ icon: Icon, label, value, trend, accent }) {
+
+function StatCard({ icon: Icon, label, value, description, tone }) {
   return (
-    <div className="stat-card">
-      <div className={`stat-icon ${accent}`}>
+    <article className={`stat-card tone-${tone}`}>
+      <div className="stat-card-icon">
         <Icon size={19} />
       </div>
-      <div className="stat-content">
+      <div>
         <span>{label}</span>
         <strong>{value}</strong>
-        <small className={trend.startsWith("+") ? "positive" : ""}>
-          {trend}
-        </small>
+        <small>{description}</small>
       </div>
-      <ArrowUpRight className="stat-arrow" size={16} />
-    </div>
+    </article>
   );
 }
-function StockChart() {
-  const { chart7, chart30 } = useSmartShelfData();
-  const [period, setPeriod] = useState("7");
-  const data = period === "7" ? chart7 : chart30;
+
+function IoTStatus({ loading, error, latestReadingAt }) {
+  const connected = !loading && !error;
+  const stages = [
+    ["Sensor", latestReadingAt ? "Leitura recebida" : "Aguardando leitura"],
+    ["ESP32", latestReadingAt ? "Dados enviados" : "Aguardando leitura"],
+    ["Supabase", connected ? "Conectado" : "Sem conexão"],
+    ["Dashboard", connected ? "Atualizado" : "Aguardando"],
+  ];
   return (
-    <div className="panel chart-panel">
-      <div className="panel-title">
+    <section className="panel iot-card">
+      <div className="section-heading">
+        <div className="section-icon red">
+          <Wifi size={18} />
+        </div>
         <div>
-          <h3>Monitoramento do estoque</h3>
-          <p className="muted">Peso monitorado em relação à capacidade da prateleira</p>
-        </div>
-        <div className="segmented">
-          <button
-            className={period === "7" ? "selected" : ""}
-            onClick={() => setPeriod("7")}
-          >
-            7 dias
-          </button>
-          <button
-            className={period === "30" ? "selected" : ""}
-            onClick={() => setPeriod("30")}
-          >
-            30 dias
-          </button>
+          <h3>Monitoramento IoT</h3>
+          <p>Fluxo real de dados do sensor até o painel</p>
         </div>
       </div>
-      <div className="chart">
-        {data.length ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7eeeb" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#84918d" }} />
-              <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#84918d" }} tickFormatter={(v) => `${v}%`} />
-              <Tooltip formatter={(v) => [`${v}%`, "Capacidade utilizada"]} contentStyle={{ borderRadius: 10, border: "1px solid #e4ece8" }} />
-              <Line type="monotone" dataKey="value" stroke="#159a75" strokeWidth={3} dot={{ r: 4, fill: "#fff", stroke: "#159a75", strokeWidth: 2 }} activeDot={{ r: 6 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="empty">Aguardando a primeira leitura real do ESP32.</div>
-        )}
-      </div>
-    </div>
-  );
-}
-function RecentAlerts({ onView }) {
-  const { alerts } = useSmartShelfData();
-  return (
-    <div className="panel">
-      <div className="panel-title">
-        <div>
-          <h3>Alertas recentes</h3>
-          <p className="muted">Acompanhe os últimos eventos</p>
-        </div>
-        <NavLink className="text-btn" to="/alertas">
-          Ver todos <ChevronRight size={14} />
-        </NavLink>
-      </div>
-      <div className="alert-list">
-        {alerts.slice(0, 3).map((a) => (
-          <div className="alert-row" key={a.id}>
-            <span className={`alert-icon ${a.severity}`}>
-              {a.severity === "success" ? (
-                <CheckCircle2 size={17} />
+      <div className="iot-flow">
+        {stages.map(([name, status], index) => (
+          <div className="iot-stage" key={name}>
+            <span
+              className={`iot-stage-icon ${status.includes("Aguardando") || status.includes("Sem") ? "waiting" : "connected"}`}
+            >
+              {index === 0 ? (
+                <Wifi size={16} />
+              ) : index === 1 ? (
+                <Activity size={16} />
+              ) : index === 2 ? (
+                <Database size={16} />
               ) : (
-                <TriangleAlert size={17} />
+                <Activity size={16} />
               )}
             </span>
-            <div className="alert-info">
-              <b>Prateleira {a.shelf}</b>
-              <span>{a.message}</span>
-            </div>
-            <div className="alert-time">{a.time}</div>
-            <button className="mini-btn" onClick={() => onView(a)}>
-              <Eye size={15} /> Visualizar
-            </button>
+            <strong>{name}</strong>
+            <small>{status}</small>
+            {index < stages.length - 1 && (
+              <ChevronRight className="iot-arrow" size={17} />
+            )}
           </div>
         ))}
       </div>
-    </div>
+      <div className="iot-reading">
+        <Clock3 size={15} /> Última leitura:{" "}
+        <strong>{formatTime(latestReadingAt)}</strong>
+      </div>
+    </section>
   );
 }
-function Dashboard() {
-  const [alert, setAlert] = useState(null);
-  const { shelves, products, alerts, loading, error, lastUpdated } = useSmartShelfData();
-  const lowStockCount = products.filter((product) => product.lowStock).length;
-  const activeAlerts = alerts.filter((item) => !item.resolved).length;
+
+function StockChart() {
+  const { chart7, chart30, loading } = useSmartShelfData();
+  const [period, setPeriod] = useState("7");
+  const data = period === "7" ? chart7 : chart30;
   return (
-    <div className="content">
-      {error && <div className="error connection-error" role="alert"><strong>Falha ao consultar o Supabase.</strong><span>{error}</span><button className="btn outline" onClick={refreshData} disabled={loading}>Tentar novamente</button></div>}
+    <section className="panel chart-panel">
+      <div className="section-heading compact">
+        <div>
+          <h3>Utilização das prateleiras</h3>
+          <p>Percentual calculado a partir de peso e capacidade reais</p>
+        </div>
+        <div className="segmented">
+          {["7", "30"].map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={period === value}
+              className={period === value ? "selected" : ""}
+              onClick={() => setPeriod(value)}
+            >
+              {value} dias
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className={`chart ${!data.length ? "chart-empty" : ""}`}>
+        {loading ? (
+          <LoadingState label="Carregando leituras..." />
+        ) : data.length ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid stroke="#edf1f0" vertical={false} />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#84918d", fontSize: 11 }}
+              />
+              <YAxis
+                domain={[0, 100]}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#84918d", fontSize: 11 }}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Tooltip
+                formatter={(value) => [`${value}%`, "Capacidade utilizada"]}
+                contentStyle={{ border: "1px solid #e5e9e8", borderRadius: 10 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#d71920"
+                strokeWidth={2.5}
+                dot={{ r: 3, fill: "#fff", stroke: "#d71920", strokeWidth: 2 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <EmptyState
+            icon={Activity}
+            title="Aguardando dados do sensor"
+            description="O gráfico será exibido após a primeira leitura do ESP32."
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ShelfSummary({ shelves, loading }) {
+  return (
+    <section className="panel">
+      <div className="section-heading compact">
+        <div>
+          <h3>Status das prateleiras</h3>
+          <p>Capacidade e última leitura por unidade</p>
+        </div>
+        <NavLink className="text-link" to="/prateleiras">
+          Ver todas <ChevronRight size={15} />
+        </NavLink>
+      </div>
+      {loading ? (
+        <LoadingState label="Carregando prateleiras..." />
+      ) : shelves.length ? (
+        shelves.map((shelf) => (
+          <div className="shelf-summary" key={shelf.rawId}>
+            <div className="shelf-summary-head">
+              <div>
+                <strong>{shelf.id}</strong>
+                <small>{shelf.location}</small>
+              </div>
+              <StatusBadge status={shelf.status} />
+            </div>
+            <div className="shelf-summary-info">
+              <span>
+                Produto: <b>{shelf.primaryProduct || "—"}</b>
+              </span>
+              <span>
+                Capacidade: <b>{shelf.capacity} kg</b>
+              </span>
+            </div>
+            <div className="shelf-summary-info">
+              <span>
+                Peso: <b>{formatWeight(shelf.weight)}</b>
+              </span>
+              <span>
+                Quantidade:{" "}
+                <b>{shelf.hasReading === false ? "—" : shelf.quantity}</b>
+              </span>
+            </div>
+            <div className="progress-row">
+              {shelf.level == null ? (
+                <span className="no-reading-label">Sem leitura</span>
+              ) : (
+                <>
+                  <ProgressBar
+                    value={shelf.level}
+                    status={shelf.status}
+                    label={`Uso da ${shelf.id}`}
+                  />
+                  <strong>{shelf.level}%</strong>
+                </>
+              )}
+            </div>
+          </div>
+        ))
+      ) : (
+        <EmptyState
+          icon={Warehouse}
+          title="Nenhuma prateleira cadastrada"
+          description="Cadastre uma prateleira no Supabase para começar."
+        />
+      )}
+    </section>
+  );
+}
+
+function RecentAlerts({ alerts, loading, onView }) {
+  const active = alerts.filter((alert) => !alert.resolved);
+  return (
+    <section className="panel">
+      <div className="section-heading compact">
+        <div>
+          <h3>Alertas recentes</h3>
+          <p>Eventos registrados pelo sistema</p>
+        </div>
+        <NavLink className="text-link" to="/alertas">
+          Ver todos <ChevronRight size={15} />
+        </NavLink>
+      </div>
+      {loading ? (
+        <LoadingState label="Carregando alertas..." />
+      ) : active.length ? (
+        active.slice(0, 4).map((alert) => (
+          <button
+            className="alert-item"
+            type="button"
+            key={alert.id}
+            onClick={() => onView(alert)}
+          >
+            <span className={`alert-item-icon ${alert.severity}`}>
+              <AlertTriangle size={16} />
+            </span>
+            <span className="alert-item-copy">
+              <strong>{alert.type || "Alerta"}</strong>
+              <span>{alert.message}</span>
+              <small>
+                {alert.shelf} · {alert.product} · {alert.time}
+              </small>
+            </span>
+            <ChevronRight size={16} />
+          </button>
+        ))
+      ) : (
+        <EmptyState
+          icon={Check}
+          title="Nenhum alerta ativo"
+          description="Seu estoque está operando normalmente."
+        />
+      )}
+    </section>
+  );
+}
+
+function RecentReadings({ history, loading }) {
+  return (
+    <section className="panel">
+      <div className="section-heading compact">
+        <div>
+          <h3>Últimas leituras</h3>
+          <p>Dados recebidos do ESP32</p>
+        </div>
+        <NavLink className="text-link" to="/historico">
+          Ver histórico <ChevronRight size={15} />
+        </NavLink>
+      </div>
+      {loading ? (
+        <LoadingState label="Carregando leituras..." />
+      ) : history.length ? (
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Horário</th>
+                <th>Prateleira</th>
+                <th>Produto</th>
+                <th>Peso</th>
+                <th>Quantidade</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history
+                .slice(-5)
+                .reverse()
+                .map((reading) => (
+                  <tr key={reading.id}>
+                    <td>{reading.time}</td>
+                    <td>
+                      <strong>{reading.shelf}</strong>
+                    </td>
+                    <td>{reading.product}</td>
+                    <td>{formatWeight(reading.weight)}</td>
+                    <td>
+                      {reading.quantity == null
+                        ? "—"
+                        : `${reading.quantity} un.`}
+                    </td>
+                    <td>
+                      <StatusBadge
+                        status={
+                          reading.status === "Crítico" ? "critical" : "normal"
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState
+          icon={History}
+          title="Aguardando primeira leitura"
+          description="As leituras aparecerão aqui quando o ESP32 enviar dados."
+        />
+      )}
+    </section>
+  );
+}
+
+function Dashboard() {
+  const {
+    shelves,
+    products,
+    alerts,
+    history,
+    loading,
+    error,
+    lastUpdated,
+    latestReadingAt,
+  } = useSmartShelfData();
+  const lowStock = products.filter((product) => product.lowStock).length;
+  const activeAlerts = alerts.filter((alert) => !alert.resolved).length;
+  const [selectedAlert, setSelectedAlert] = useState(null);
+  return (
+    <div className="page-content">
+      <PageHeader
+        title="Dashboard"
+        description="Visão geral do estoque e dos sensores"
+        action={
+          <button
+            className="button secondary"
+            type="button"
+            onClick={refreshData}
+            disabled={loading}
+          >
+            <RefreshCw size={16} className={loading ? "spin" : ""} /> Atualizar
+          </button>
+        }
+      />
+      {error && <ErrorState error={error} onRetry={refreshData} />}
       <div className="stats-grid">
-        <StatCard icon={Package} label="Produtos monitorados" value={products.length} trend="Produtos ativos no banco" accent="teal" />
-        <StatCard icon={Warehouse} label="Prateleiras monitoradas" value={shelves.length} trend="Prateleiras ativas no banco" accent="blue" />
-        <StatCard icon={TriangleAlert} label="Produtos com estoque baixo" value={lowStockCount} trend="Calculado pelas leituras" accent="orange" />
-        <StatCard icon={Bell} label="Alertas ativos" value={activeAlerts} trend="Ocorrências não resolvidas" accent="red" />
+        <StatCard
+          icon={Warehouse}
+          label="Prateleiras"
+          value={loading ? "—" : shelves.length}
+          description="cadastradas"
+          tone="blue"
+        />
+        <StatCard
+          icon={Package}
+          label="Produtos"
+          value={loading ? "—" : products.length}
+          description="monitorados"
+          tone="red"
+        />
+        <StatCard
+          icon={SlidersHorizontal}
+          label="Estoque baixo"
+          value={loading ? "—" : lowStock}
+          description="produtos"
+          tone="amber"
+        />
+        <StatCard
+          icon={Bell}
+          label="Alertas ativos"
+          value={loading ? "—" : activeAlerts}
+          description="requerem atenção"
+          tone="rose"
+        />
       </div>
-      <div className="iot-banner">
-        <div className="iot-icon"><Radio size={20} /></div>
-        <div><b>Monitoramento SmartShelf <span className="live-dot" /> {loading ? "Atualizando..." : "Consulta ao Supabase"}</b>
-          <p>Os dados são consultados no Supabase e atualizados automaticamente a cada 15 segundos.{lastUpdated ? " Última atualização: " + new Date(lastUpdated).toLocaleTimeString("pt-BR") + "." : ""}</p>
-        </div>
-        <div className="iot-flow"><span>SENSOR</span><i>→</i><span>ESP32</span><i>→</i><span>SUPABASE</span><i>→</i><span>PAINEL</span></div>
-      </div>
-      <div className="dashboard-grid">
+      <IoTStatus
+        loading={loading}
+        error={error}
+        latestReadingAt={latestReadingAt}
+      />
+      <div className="dashboard-grid primary-grid">
         <StockChart />
-        <div className="panel shelf-status">
-          <div className="panel-title"><div><h3>Status das prateleiras</h3><p className="muted">Visão por nível de estoque</p></div><NavLink className="text-btn" to="/prateleiras">Ver todas <ChevronRight size={14} /></NavLink></div>
-          {shelves.map((s) => <div className="shelf-row" key={s.rawId}><div className="shelf-name"><span className={"shelf-dot " + s.status} /><b>{s.id}</b><small>{s.products} produtos</small></div><div className="level-wrap"><div className="progress"><i className={s.status} style={{ width: s.level + "%" }} /></div><strong>{s.level}%</strong></div><StatusBadge status={s.status} /></div>)}
-          {!shelves.length && !loading && <div className="empty">Nenhuma prateleira cadastrada no Supabase.</div>}
-        </div>
+        <ShelfSummary shelves={shelves} loading={loading} />
       </div>
-      <div className="dashboard-grid lower">
-        <RecentAlerts onView={setAlert} />
-        <div className="panel"><div className="panel-title"><div><h3>Atividade recente</h3><p className="muted">Produtos e últimas leituras recebidas</p></div><Activity size={19} className="muted" /></div>
-          <div className="table-scroll"><table><thead><tr><th>Produto</th><th>Prateleira</th><th>Quantidade</th><th>Nível</th><th>Atualização</th></tr></thead><tbody>
-            {products.map((p) => <tr key={p.id}><td><b>{p.name}</b></td><td>{p.shelf}</td><td>{p.quantity == null ? "—" : p.quantity}</td><td><span className={"level-text " + (p.lowStock ? "danger" : "")}>{p.level}%</span></td><td className="muted">{p.updated}</td></tr>)}
-          </tbody></table></div>{!products.length && !loading && <div className="empty">Nenhum produto cadastrado.</div>}
-        </div>
+      <div className="dashboard-grid secondary-grid">
+        <RecentAlerts
+          alerts={alerts}
+          loading={loading}
+          onView={setSelectedAlert}
+        />
+        <RecentReadings history={history} loading={loading} />
       </div>
-      {alert && <AlertModal alert={alert} onClose={() => setAlert(null)} />}
+      {selectedAlert && (
+        <AlertModal
+          alert={selectedAlert}
+          onClose={() => setSelectedAlert(null)}
+        />
+      )}
     </div>
   );
 }
-function Shelves() {
-  const { shelves } = useSmartShelfData();
+
+function AlertModal({ alert, onClose }) {
+  return (
+    <Modal title={alert.message} onClose={onClose}>
+      <div className="detail-list">
+        <div>
+          <span>Tipo</span>
+          <strong>{alert.type || "Alerta"}</strong>
+        </div>
+        <div>
+          <span>Prateleira</span>
+          <strong>{alert.shelf}</strong>
+        </div>
+        <div>
+          <span>Produto</span>
+          <strong>{alert.product}</strong>
+        </div>
+        <div>
+          <span>Data</span>
+          <strong>
+            {alert.date
+              ? new Date(alert.date).toLocaleString("pt-BR")
+              : alert.time}
+          </strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <StatusBadge status={alert.resolved ? "success" : alert.severity} />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function ShelfCard({ shelf, onView }) {
+  return (
+    <article className="shelf-card">
+      <div className="shelf-card-head">
+        <div className={`shelf-card-icon ${shelf.status}`}>
+          <Warehouse size={19} />
+        </div>
+        <StatusBadge status={shelf.status} />
+      </div>
+      <h3>{shelf.id}</h3>
+      <p className="shelf-location">{shelf.location}</p>
+      <div className="shelf-card-details">
+        <span>
+          Produto <b>{shelf.primaryProduct || "—"}</b>
+        </span>
+        <span>
+          Peso <b>{formatWeight(shelf.weight)}</b>
+        </span>
+        <span>
+          Quantidade <b>{shelf.level == null ? "—" : shelf.quantity}</b>
+        </span>
+        <span>
+          Capacidade <b>{shelf.capacity} kg</b>
+        </span>
+      </div>
+      <div className="progress-row">
+        {shelf.level == null ? (
+          <span className="no-reading-label">
+            Sensor aguardando primeira leitura
+          </span>
+        ) : (
+          <>
+            <ProgressBar
+              value={shelf.level}
+              status={shelf.status}
+              label={`Uso da ${shelf.id}`}
+            />
+            <strong>{shelf.level}%</strong>
+          </>
+        )}
+      </div>
+      <small className="last-reading">Última leitura: {shelf.updated}</small>
+      <button
+        className="button secondary full"
+        type="button"
+        onClick={() => onView(shelf)}
+      >
+        Ver detalhes <ChevronRight size={15} />
+      </button>
+    </article>
+  );
+}
+
+function ShelvesPage() {
+  const { shelves, loading, error } = useSmartShelfData();
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const shown =
-    filter === "all" ? shelves : shelves.filter((s) => s.status === filter);
+    filter === "all"
+      ? shelves
+      : shelves.filter((shelf) => shelf.status === filter);
   return (
-    <div className="content">
-      <div className="page-intro">
-        <div>
-          <h2>Prateleiras</h2>
-          <p className="muted">
-            Gerencie e acompanhe todas as prateleiras inteligentes.
-          </p>
-        </div>
-        <button className="btn outline" onClick={refreshData}>
-          <RefreshCw size={16} /> Atualizar dados
-        </button>
-      </div>
-      <div className="filter-tabs">
+    <div className="page-content">
+      <PageHeader
+        title="Prateleiras"
+        description="Ocupação, capacidade e estado dos sensores"
+        action={
+          <button
+            className="button secondary"
+            type="button"
+            onClick={refreshData}
+            disabled={loading}
+          >
+            <RefreshCw size={16} /> Atualizar
+          </button>
+        }
+      />
+      {error && <ErrorState error={error} onRetry={refreshData} />}
+      <div
+        className="filter-tabs"
+        role="group"
+        aria-label="Filtrar prateleiras"
+      >
         {[
           ["all", "Todas"],
           ["normal", "Normal"],
           ["attention", "Atenção"],
           ["critical", "Crítico"],
-        ].map(([v, l]) => (
+          ["no-reading", "Sem leitura"],
+        ].map(([value, label]) => (
           <button
-            key={v}
-            className={filter === v ? "active" : ""}
-            onClick={() => setFilter(v)}
+            key={value}
+            type="button"
+            aria-pressed={filter === value}
+            className={filter === value ? "active" : ""}
+            onClick={() => setFilter(value)}
           >
-            {l}
+            {label}
             <span>
-              {v === "all"
+              {value === "all"
                 ? shelves.length
-                : shelves.filter((s) => s.status === v).length}
+                : shelves.filter((shelf) => shelf.status === value).length}
             </span>
           </button>
         ))}
       </div>
-      <div className="shelf-cards">
-        {shown.map((s) => (
-          <div className="shelf-card" key={s.id}>
-            <div className="card-top">
-              <div className={`shelf-big-icon ${s.status}`}>
-                <Warehouse size={21} />
-              </div>
-              <StatusBadge status={s.status} />
-            </div>
-            <h3>Prateleira {s.id}</h3>
-            <div className="big-level">{s.level}%</div>
-            <div className="progress large">
-              <i className={s.status} style={{ width: `${s.level}%` }} />
-            </div>
-            <div className="shelf-meta">
-              <span>
-                <Package size={15} /> {s.products} produtos
-              </span>
-              <span>
-                <RefreshCw size={14} /> {s.updated}
-              </span>
-            </div>
-            <button className="btn outline full" onClick={() => setSelected(s)}>
-              Ver detalhes <ChevronRight size={15} />
-            </button>
-          </div>
-        ))}
+      <div className="shelf-grid">
+        {loading ? (
+          <LoadingState label="Carregando prateleiras..." />
+        ) : (
+          shown.map((shelf) => (
+            <ShelfCard key={shelf.rawId} shelf={shelf} onView={setSelected} />
+          ))
+        )}
       </div>
-      {!shown.length && (
-        <div className="empty">
-          <SlidersHorizontal size={28} />
-          <b>Nenhuma prateleira encontrada</b>
-          <span>Tente outro filtro.</span>
-        </div>
+      {!loading && !shown.length && (
+        <EmptyState
+          icon={Warehouse}
+          title="Nenhuma prateleira encontrada"
+          description={
+            shelves.length
+              ? "Tente outro filtro."
+              : "Nenhuma prateleira foi retornada pelo Supabase."
+          }
+        />
       )}
       {selected && (
-        <ShelfModal shelf={selected} onClose={() => setSelected(null)} />
+        <Modal title={selected.id} onClose={() => setSelected(null)}>
+          <div className="detail-level">
+            {selected.level == null ? "Sem leitura" : `${selected.level}%`}
+          </div>
+          <div className="detail-list">
+            <div>
+              <span>Localização</span>
+              <strong>{selected.location}</strong>
+            </div>
+            <div>
+              <span>Produto</span>
+              <strong>{selected.primaryProduct || "—"}</strong>
+            </div>
+            <div>
+              <span>Peso</span>
+              <strong>{formatWeight(selected.weight)}</strong>
+            </div>
+            <div>
+              <span>Capacidade</span>
+              <strong>{selected.capacity} kg</strong>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
 }
-function Alerts() {
-  const { alerts } = useSmartShelfData();
-  const [items, setItems] = useState(alerts);
-  const [actionError, setActionError] = useState("");
-  useEffect(() => setItems(alerts), [alerts]);
+
+function ProductsPage() {
+  const { products, loading, error } = useSmartShelfData();
+  return (
+    <div className="page-content">
+      <PageHeader
+        title="Produtos"
+        description="Produtos ativos relacionados às prateleiras"
+        action={
+          <button
+            className="button secondary"
+            type="button"
+            onClick={refreshData}
+            disabled={loading}
+          >
+            <RefreshCw size={16} /> Atualizar
+          </button>
+        }
+      />
+      {error && <ErrorState error={error} onRetry={refreshData} />}
+      <section className="panel table-panel">
+        {loading ? (
+          <LoadingState label="Carregando produtos..." />
+        ) : products.length ? (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>Código</th>
+                  <th>Prateleira</th>
+                  <th>Peso atual</th>
+                  <th>Quantidade</th>
+                  <th>Estoque mínimo</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((product) => (
+                  <tr key={product.id}>
+                    <td>
+                      <strong>{product.name}</strong>
+                    </td>
+                    <td>{product.code}</td>
+                    <td>{product.shelf}</td>
+                    <td>{formatWeight(product.weight)}</td>
+                    <td>
+                      {product.quantity == null
+                        ? "—"
+                        : `${product.quantity} un.`}
+                    </td>
+                    <td>{product.minimum || "—"}</td>
+                    <td>
+                      <StatusBadge
+                        status={
+                          !product.hasReading
+                            ? "no-reading"
+                            : product.lowStock
+                              ? "critical"
+                              : "normal"
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState
+            icon={Package}
+            title="Nenhum produto cadastrado"
+            description="Os produtos ativos aparecerão aqui após serem cadastrados no Supabase."
+          />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function AlertsPage() {
+  const { alerts, loading, error } = useSmartShelfData();
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
-  const shown = items.filter(
-    (a) =>
+  const [resolving, setResolving] = useState(null);
+  const [actionError, setActionError] = useState("");
+  const shown = alerts.filter(
+    (alert) =>
       filter === "all" ||
-      (filter === "resolved"
-        ? a.resolved
-        : a.severity === filter && !a.resolved),
+      (filter === "active" ? !alert.resolved : alert.resolved),
   );
+  const handleResolve = async (id) => {
+    setActionError("");
+    setResolving(id);
+    try {
+      await resolveAlert(id);
+    } catch (resolveError) {
+      setActionError(
+        resolveError?.message || "Não foi possível resolver o alerta.",
+      );
+    } finally {
+      setResolving(null);
+    }
+  };
   return (
-    <div className="content">
-      <div className="page-intro">
-        <div>
-          <h2>Alertas</h2>
-          <p className="muted">
-            Acompanhe ocorrências e mantenha seu estoque em dia.
-          </p>
+    <div className="page-content">
+      <PageHeader
+        title="Alertas"
+        description="Monitoramento de eventos do SmartShelf"
+        action={
+          <button
+            className="button secondary"
+            type="button"
+            onClick={refreshData}
+            disabled={loading}
+          >
+            <RefreshCw size={16} /> Atualizar
+          </button>
+        }
+      />
+      {error && <ErrorState error={error} onRetry={refreshData} />}
+      {actionError && (
+        <div className="error-state" role="alert">
+          <AlertTriangle size={20} />
+          <span>{actionError}</span>
         </div>
-        <div className="alert-summary">
-          <b>{items.filter((a) => !a.resolved).length}</b> alertas pendentes
-        </div>
-      </div>
-      {actionError && <div className="error connection-error" role="alert">{actionError}</div>}
-      <div className="filter-tabs">
+      )}
+      <div className="filter-tabs" role="group" aria-label="Filtrar alertas">
         {[
           ["all", "Todos"],
-          ["critical", "Críticos"],
-          ["attention", "Atenção"],
+          ["active", "Ativos"],
           ["resolved", "Resolvidos"],
-        ].map(([v, l]) => (
+        ].map(([value, label]) => (
           <button
-            key={v}
-            className={filter === v ? "active" : ""}
-            onClick={() => setFilter(v)}
+            key={value}
+            type="button"
+            aria-pressed={filter === value}
+            className={filter === value ? "active" : ""}
+            onClick={() => setFilter(value)}
           >
-            {l}
+            {label}
+            <span>
+              {value === "all"
+                ? alerts.length
+                : alerts.filter((alert) =>
+                    value === "active" ? !alert.resolved : alert.resolved,
+                  ).length}
+            </span>
           </button>
         ))}
       </div>
-      <div className="panel table-panel">
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Prateleira</th>
-                <th>Mensagem</th>
-                <th>Status</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((a) => (
-                <tr key={a.id}>
-                  <td className="muted">{a.time}</td>
-                  <td>
-                    <b>{a.shelf}</b>
-                  </td>
-                  <td>{a.message}</td>
-                  <td>
-                    <StatusBadge status={a.resolved ? "success" : a.severity} />
-                  </td>
-                  <td>
-                    <div className="action-row">
-                      <button
-                        className="mini-btn"
-                        onClick={() => setSelected(a)}
-                      >
-                        <Eye size={15} /> Ver
-                      </button>
-                      {!a.resolved && (
-                        <button
-                          className="resolve-btn"
-                          onClick={() => {
-                            setActionError("");
-                            resolveAlert(a.id).catch((error) => {
-                              setActionError(error?.message || "Não foi possível resolver o alerta.");
-                            });
-                          }}
-                        >
-                          <Check size={15} /> Resolver
-                        </button>
-                      )}
-                    </div>
-                  </td>
+      <section className="panel table-panel">
+        {loading ? (
+          <LoadingState label="Carregando alertas..." />
+        ) : shown.length ? (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Mensagem</th>
+                  <th>Prateleira</th>
+                  <th>Produto</th>
+                  <th>Data</th>
+                  <th>Status</th>
+                  <th>Ação</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!shown.length && (
-          <div className="empty">Nenhum alerta neste filtro.</div>
+              </thead>
+              <tbody>
+                {shown.map((alert) => (
+                  <tr key={alert.id}>
+                    <td>{alert.type || "Alerta"}</td>
+                    <td>{alert.message}</td>
+                    <td>{alert.shelf}</td>
+                    <td>{alert.product}</td>
+                    <td>
+                      {alert.date
+                        ? new Date(alert.date).toLocaleString("pt-BR")
+                        : alert.time}
+                    </td>
+                    <td>
+                      <StatusBadge
+                        status={alert.resolved ? "success" : alert.severity}
+                      />
+                    </td>
+                    <td>
+                      <div className="action-row">
+                        <button
+                          className="button small secondary"
+                          type="button"
+                          onClick={() => setSelected(alert)}
+                        >
+                          Ver
+                        </button>
+                        {!alert.resolved && (
+                          <button
+                            className="button small danger"
+                            type="button"
+                            disabled={resolving === alert.id}
+                            onClick={() => handleResolve(alert.id)}
+                          >
+                            <Check size={14} />
+                            {resolving === alert.id
+                              ? "Salvando..."
+                              : "Resolver"}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState
+            icon={Check}
+            title={
+              filter === "active"
+                ? "Nenhum alerta ativo"
+                : "Nenhum alerta encontrado"
+            }
+            description={
+              filter === "active"
+                ? "Seu estoque está operando normalmente."
+                : "Não há registros para este filtro."
+            }
+          />
         )}
-      </div>
+      </section>
       {selected && (
         <AlertModal alert={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   );
 }
+
 function HistoryPage() {
-  const { history, shelves } = useSmartShelfData();
-  const [shelf, setShelf] = useState("Todas");
+  const { history, shelves, products, loading, error } = useSmartShelfData();
   const [period, setPeriod] = useState("30");
-  const cutoff = Date.now() - Number(period) * 24 * 60 * 60 * 1000;
-  const data = history.filter((item) => (shelf === "Todas" || item.shelf === shelf) && new Date(item.timestamp).getTime() >= cutoff);
+  const [shelf, setShelf] = useState("Todas");
+  const [product, setProduct] = useState("Todos");
+  const cutoff = Date.now() - Number(period) * 86400000;
+  const filtered = history.filter(
+    (item) =>
+      new Date(item.timestamp).getTime() >= cutoff &&
+      (shelf === "Todas" || item.shelf === shelf) &&
+      (product === "Todos" || item.product === product),
+  );
   return (
-    <div className="content">
-      <div className="page-intro">
-        <div><h2>Histórico de monitoramento</h2><p className="muted">Leituras registradas no Supabase.</p></div>
-        <div className="history-filters">
-          <select value={period} onChange={(e) => setPeriod(e.target.value)}><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option></select>
-          <select value={shelf} onChange={(e) => setShelf(e.target.value)}><option>Todas</option>{shelves.map((item) => <option key={item.rawId}>{item.id}</option>)}</select>
+    <div className="page-content">
+      <PageHeader
+        title="Histórico"
+        description="Leituras reais recebidas dos sensores"
+        action={
+          <button
+            className="button secondary"
+            type="button"
+            onClick={refreshData}
+            disabled={loading}
+          >
+            <RefreshCw size={16} /> Atualizar
+          </button>
+        }
+      />
+      {error && <ErrorState error={error} onRetry={refreshData} />}
+      <div className="filters-card">
+        <label>
+          Período
+          <select
+            value={period}
+            onChange={(event) => setPeriod(event.target.value)}
+          >
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+          </select>
+        </label>
+        <label>
+          Prateleira
+          <select
+            value={shelf}
+            onChange={(event) => setShelf(event.target.value)}
+          >
+            <option>Todas</option>
+            {shelves.map((item) => (
+              <option key={item.rawId}>{item.id}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Produto
+          <select
+            value={product}
+            onChange={(event) => setProduct(event.target.value)}
+          >
+            <option>Todos</option>
+            {products.map((item) => (
+              <option key={item.id}>{item.name}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <section className="panel table-panel">
+        <div className="section-heading compact">
+          <div>
+            <h3>Leituras registradas</h3>
+            <p>{filtered.length} registros encontrados</p>
+          </div>
         </div>
-      </div>
-      <StockChart />
-      <div className="panel table-panel history-table">
-        <div className="panel-title"><h3>Registros de leitura</h3><span className="muted">{data.length} registros</span></div>
-        <div className="table-scroll"><table><thead><tr><th>Data</th><th>Horário</th><th>Prateleira</th><th>Produto</th><th>Peso</th><th>Quantidade</th><th>Nível</th><th>Status</th></tr></thead>
-          <tbody>{data.map((item) => <tr key={item.id}><td>{item.date}</td><td className="muted">{item.time}</td><td><b>{item.shelf}</b></td><td>{item.product}</td><td>{item.weight.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg</td><td>{item.quantity == null ? "—" : item.quantity}</td><td>{item.level}%</td><td><StatusBadge status={item.status === "Normal" ? "normal" : "critical"} /></td></tr>)}</tbody>
-        </table></div>
-        {!data.length && <div className="empty">Nenhuma leitura registrada neste período.</div>}
-      </div>
+        {loading ? (
+          <LoadingState label="Carregando histórico..." />
+        ) : filtered.length ? (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Prateleira</th>
+                  <th>Produto</th>
+                  <th>Peso</th>
+                  <th>Quantidade</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered
+                  .slice()
+                  .reverse()
+                  .map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        {item.date} · {item.time}
+                      </td>
+                      <td>{item.shelf}</td>
+                      <td>{item.product}</td>
+                      <td>{formatWeight(item.weight)}</td>
+                      <td>
+                        {item.quantity == null ? "—" : `${item.quantity} un.`}
+                      </td>
+                      <td>
+                        <StatusBadge
+                          status={
+                            item.status === "Crítico" ? "critical" : "normal"
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState
+            icon={History}
+            title="Nenhuma leitura encontrada"
+            description="Não há leituras para os filtros selecionados."
+          />
+        )}
+      </section>
     </div>
   );
 }
+
 function SettingsPage() {
-  const { shelves, products, alerts, lastUpdated, loading, error } = useSmartShelfData();
+  const { shelves, products, alerts, loading, error, lastUpdated } =
+    useSmartShelfData();
+  let projectUrl = "Não configurado";
+  try {
+    projectUrl = new URL(import.meta.env.VITE_SUPABASE_URL).host;
+  } catch {
+    /* configuração ausente */
+  }
   return (
-    <div className="content">
-      <div className="page-intro">
-        <div><h2>Configurações do protótipo</h2><p className="muted">Estado da conexão e configuração do hardware SmartShelf.</p></div>
-        <button className="btn outline" onClick={refreshData} disabled={loading}><RefreshCw size={16} /> Atualizar estado</button>
-      </div>
-      {error && <div className="error connection-error" role="alert">{error}</div>}
+    <div className="page-content">
+      <PageHeader
+        title="Configurações"
+        description="Estado da conexão, hardware e dados do sistema"
+        action={
+          <button
+            className="button secondary"
+            type="button"
+            onClick={refreshData}
+            disabled={loading}
+          >
+            <RefreshCw size={16} /> Atualizar
+          </button>
+        }
+      />
+      {error && <ErrorState error={error} onRetry={refreshData} />}
       <div className="settings-grid">
-        <div className="panel settings-section">
-          <div className="section-heading"><div className="settings-icon"><Activity size={18} /></div><div><h3>Conexão com o banco</h3><p className="muted">Dados consultados diretamente no Supabase</p></div></div>
-          <div className="settings-value-row"><span>Status</span><StatusBadge status={error ? "critical" : loading ? "attention" : "normal"} /></div>
-          <div className="settings-value-row"><span>Última consulta</span><b>{lastUpdated ? new Date(lastUpdated).toLocaleString("pt-BR") : "Ainda não consultado"}</b></div>
-          <div className="settings-value-row"><span>Atualização automática</span><b>A cada 15 segundos</b></div>
-          <div className="settings-value-row"><span>Tabelas utilizadas</span><b>prateleiras, produtos, leituras, alertas</b></div>
-        </div>
-        <div className="panel settings-section">
-          <div className="section-heading"><div className="settings-icon"><Radio size={18} /></div><div><h3>Hardware do protótipo</h3><p className="muted">Configuração prevista para ESP32 e HX711</p></div></div>
-          <div className="settings-value-row"><span>Microcontrolador</span><b>ESP32</b></div>
-          <div className="settings-value-row"><span>Conversor de carga</span><b>HX711</b></div>
-          <div className="settings-value-row"><span>DT / DOUT</span><b>GPIO 4</b></div>
-          <div className="settings-value-row"><span>SCK / CLK</span><b>GPIO 5</b></div>
-          <div className="settings-value-row"><span>Prateleiras ativas</span><b>{shelves.length}</b></div>
-          <div className="settings-value-row"><span>Produtos ativos</span><b>{products.length}</b></div>
-          <div className="settings-value-row"><span>Alertas registrados</span><b>{alerts.length}</b></div>
-        </div>
+        <section className="panel settings-section">
+          <div className="section-heading">
+            <div className="section-icon red">
+              <Database size={18} />
+            </div>
+            <div>
+              <h3>Conexão</h3>
+              <p>Consulta REST ao projeto Supabase</p>
+            </div>
+          </div>
+          <div className="settings-row">
+            <span>Status</span>
+            <StatusBadge
+              status={error ? "critical" : loading ? "attention" : "normal"}
+            />
+          </div>
+          <div className="settings-row">
+            <span>Projeto</span>
+            <strong>{projectUrl}</strong>
+          </div>
+          <div className="settings-row">
+            <span>Última consulta</span>
+            <strong>{formatTime(lastUpdated)}</strong>
+          </div>
+          <div className="settings-row">
+            <span>Atualização automática</span>
+            <strong>A cada 15 segundos</strong>
+          </div>
+        </section>
+        <section className="panel settings-section">
+          <div className="section-heading">
+            <div className="section-icon blue">
+              <Activity size={18} />
+            </div>
+            <div>
+              <h3>Hardware</h3>
+              <p>Configuração do protótipo IoT</p>
+            </div>
+          </div>
+          <div className="settings-row">
+            <span>Microcontrolador</span>
+            <strong>ESP32</strong>
+          </div>
+          <div className="settings-row">
+            <span>Conversor</span>
+            <strong>HX711</strong>
+          </div>
+          <div className="settings-row">
+            <span>GPIO DATA</span>
+            <strong>4</strong>
+          </div>
+          <div className="settings-row">
+            <span>GPIO CLOCK</span>
+            <strong>5</strong>
+          </div>
+          <div className="settings-row">
+            <span>Capacidade padrão</span>
+            <strong>5 kg</strong>
+          </div>
+        </section>
+        <section className="panel settings-section">
+          <div className="section-heading">
+            <div className="section-icon green">
+              <Layers3 size={18} />
+            </div>
+            <div>
+              <h3>Banco de dados</h3>
+              <p>Registros ativos disponíveis no painel</p>
+            </div>
+          </div>
+          <div className="settings-row">
+            <span>Prateleiras</span>
+            <strong>{shelves.length}</strong>
+          </div>
+          <div className="settings-row">
+            <span>Produtos</span>
+            <strong>{products.length}</strong>
+          </div>
+          <div className="settings-row">
+            <span>Leituras carregadas</span>
+            <strong>{loading ? "—" : "Disponíveis no histórico"}</strong>
+          </div>
+          <div className="settings-row">
+            <span>Alertas</span>
+            <strong>{alerts.length}</strong>
+          </div>
+        </section>
       </div>
-      <p className="muted settings-note">A leitura física só será exibida quando o ESP32 estiver calibrado e enviando medições para a tabela leituras.</p>
     </div>
   );
 }
-function Protected() {
-  return (
-    <Layout>
-      <Routes>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/prateleiras" element={<Shelves />} />
-        <Route path="/alertas" element={<Alerts />} />
-        <Route path="/historico" element={<HistoryPage />} />
-        <Route path="/configuracoes" element={<SettingsPage />} />
-      </Routes>
-    </Layout>
-  );
-}
+
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Protected />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/prateleiras" element={<ShelvesPage />} />
+      <Route path="/produtos" element={<ProductsPage />} />
+      <Route path="/alertas" element={<AlertsPage />} />
+      <Route path="/historico" element={<HistoryPage />} />
+      <Route path="/configuracoes" element={<SettingsPage />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
+
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <App />
+    <Layout>
+      <App />
+    </Layout>
   </BrowserRouter>,
 );

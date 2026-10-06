@@ -12,6 +12,7 @@ let state = {
   loading: true,
   error: null,
   lastUpdated: null,
+  latestReadingAt: null,
 };
 const listeners = new Set();
 let started = false;
@@ -46,23 +47,27 @@ function build(shelves, products, readings, alerts) {
   const mappedProducts = products.map((product) => {
     const reading = latestByProduct.get(product.id);
     const shelf = shelves.find((item) => item.id === product.prateleira_id);
-    const weight = Number(reading?.peso_kg ?? 0);
+    const hasReading = Boolean(reading);
+    const weight = hasReading ? Number(reading.peso_kg ?? 0) : null;
     const unitWeight = Number(product.peso_unitario_kg ?? 0);
     const quantity =
       reading?.quantidade_estimada != null
         ? Number(reading.quantidade_estimada)
-        : unitWeight > 0
+        : hasReading && unitWeight > 0
           ? Math.floor(weight / unitWeight)
           : null;
-    const level = clampPercent(
-      (weight / Number(shelf?.capacidade_kg || 5)) * 100,
-    );
+    const level = hasReading
+      ? clampPercent(
+            (weight / Number(shelf?.capacidade_kg || 5)) * 100,
+          )
+      : null;
     return {
       id: product.id,
       name: product.nome,
       code: product.codigo || "—",
       shelf: shelf?.nome || "—",
       shelfId: product.prateleira_id,
+      hasReading,
       weight,
       unitWeight,
       quantity,
@@ -79,11 +84,14 @@ function build(shelves, products, readings, alerts) {
     const shelfProducts = mappedProducts.filter(
       (product) => product.shelfId === shelf.id,
     );
-    const weight = Number(reading?.peso_kg ?? 0);
+    const hasReading = Boolean(reading);
+    const weight = hasReading ? Number(reading.peso_kg ?? 0) : null;
     const capacity = Number(shelf.capacidade_kg || 5);
-    const level = clampPercent((weight / capacity) * 100);
+    const level = hasReading ? clampPercent((weight / capacity) * 100) : null;
     const hasLowStock = shelfProducts.some((product) => product.lowStock);
-    const status = hasLowStock
+    const status = !hasReading
+      ? "no-reading"
+      : hasLowStock
       ? "critical"
       : level >= 90
         ? "attention"
@@ -92,6 +100,7 @@ function build(shelves, products, readings, alerts) {
     return {
       id: shelf.nome,
       rawId: shelf.id,
+      hasReading,
       location: shelf.localizacao || "Local não informado",
       capacity,
       weight,
@@ -103,6 +112,7 @@ function build(shelves, products, readings, alerts) {
       level,
       status,
       min: shelfProducts.reduce((sum, product) => sum + product.minimum, 0),
+      primaryProduct: shelfProducts[0]?.name || null,
       updated: reading ? relativeTime(reading.criado_em) : "Sem leitura",
       readingAt: reading?.criado_em || null,
     };
@@ -112,6 +122,8 @@ function build(shelves, products, readings, alerts) {
     id: alert.id,
     shelf:
       shelves.find((shelf) => shelf.id === alert.prateleira_id)?.nome || "—",
+    product:
+      products.find((product) => product.id === alert.produto_id)?.nome || "—",
     message: alert.mensagem,
     time: relativeTime(alert.criado_em),
     date: alert.criado_em,
@@ -158,6 +170,7 @@ function build(shelves, products, readings, alerts) {
   const points = readings.map((reading) => {
     const shelf = shelfById.get(reading.prateleira_id);
     return {
+      timestamp: reading.criado_em,
       name: new Date(reading.criado_em).toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
@@ -174,8 +187,13 @@ function build(shelves, products, readings, alerts) {
     products: mappedProducts,
     alerts: mappedAlerts,
     history,
-    chart7: points.slice(-7),
-    chart30: points.slice(-30),
+    chart7: points.filter(
+      (point) => new Date(point.timestamp).getTime() >= Date.now() - 7 * 86400000,
+    ),
+    chart30: points.filter(
+      (point) => new Date(point.timestamp).getTime() >= Date.now() - 30 * 86400000,
+    ),
+    latestReadingAt: readings.at(-1)?.criado_em || null,
     notifications: mappedAlerts.slice(0, 5).map((alert) => ({
       title: alert.resolved ? "Alerta resolvido" : "Alerta ativo",
       body: `${alert.shelf}: ${alert.message}`,
