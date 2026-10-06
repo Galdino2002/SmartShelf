@@ -157,6 +157,20 @@
 			"command": "npm run build",
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Inspect Git deployment state",
+			"type": "shell",
+			"command": "git --no-pager log -3 --oneline; git --no-pager status --short; git --no-pager diff -- package.json; git remote -v",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Compare deployed commit",
+			"type": "shell",
+			"command": "git show e3ce38c:package.json; Write-Output '--- deployed commit ---'; git show 2138fcc:package.json",
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }
