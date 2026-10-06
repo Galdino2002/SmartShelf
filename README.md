@@ -27,7 +27,7 @@ O painel lê estas tabelas:
 - `leituras`: peso e quantidade estimada enviados pelo sensor.
 - `alertas`: ocorrências registradas e estado de resolução.
 
-O navegador consulta os dados na abertura e atualiza a consulta a cada 15 segundos. Isso é atualização periódica via REST, não WebSocket em tempo real. Resolver um alerta atualiza o registro no Supabase.
+O navegador consulta os dados na abertura e atualiza a consulta a cada 15 segundos. Isso é atualização periódica via REST, não WebSocket em tempo real. Resolver um alerta atualiza o registro no Supabase. Um gatilho PostgreSQL cria alertas de estoque vazio, estoque baixo e sobrepeso a partir das novas leituras, evitando repetir alertas enquanto o mesmo problema continuar ativo.
 
 O projeto tem uma prateleira cadastrada. O painel fica sem leituras reais até o ESP32 enviar a primeira medição.
 
