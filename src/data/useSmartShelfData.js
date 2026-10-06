@@ -67,7 +67,7 @@ function build(shelves, products, readings, alerts) {
       unitWeight,
       quantity,
       minimum: Number(product.estoque_minimo || 0),
-      lowStock: quantity != null && quantity <= Number(product.estoque_minimo || 0),
+      lowStock: Boolean(reading) && quantity != null && quantity <= Number(product.estoque_minimo || 0),
       level,
       updated: reading ? relativeTime(reading.criado_em) : "Sem leitura",
       readingAt: reading?.criado_em || null,
