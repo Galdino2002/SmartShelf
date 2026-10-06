@@ -396,132 +396,39 @@ function RecentAlerts({ onView }) {
 }
 function Dashboard() {
   const [alert, setAlert] = useState(null);
-  const { shelves, products } = useSmartShelfData();
+  const { shelves, products, alerts, loading, error, lastUpdated } = useSmartShelfData();
+  const lowStockCount = products.filter((product) => product.lowStock).length;
+  const activeAlerts = alerts.filter((item) => !item.resolved).length;
   return (
     <div className="content">
+      {error && <div className="error connection-error" role="alert"><strong>Falha ao consultar o Supabase.</strong><span>{error}</span><button className="btn outline" onClick={refreshData} disabled={loading}>Tentar novamente</button></div>}
       <div className="stats-grid">
-        <StatCard
-          icon={Package}
-          label="Produtos monitorados"
-          value="128"
-          trend="+8% este mês"
-          accent="teal"
-        />
-        <StatCard
-          icon={Warehouse}
-          label="Prateleiras monitoradas"
-          value="12"
-          trend="+2 este mês"
-          accent="blue"
-        />
-        <StatCard
-          icon={TriangleAlert}
-          label="Estoque baixo"
-          value="08"
-          trend="2 críticos"
-          accent="orange"
-        />
-        <StatCard
-          icon={Bell}
-          label="Alertas ativos"
-          value="05"
-          trend="-12% esta semana"
-          accent="red"
-        />
+        <StatCard icon={Package} label="Produtos monitorados" value={products.length} trend="Produtos ativos no banco" accent="teal" />
+        <StatCard icon={Warehouse} label="Prateleiras monitoradas" value={shelves.length} trend="Prateleiras ativas no banco" accent="blue" />
+        <StatCard icon={TriangleAlert} label="Produtos com estoque baixo" value={lowStockCount} trend="Calculado pelas leituras" accent="orange" />
+        <StatCard icon={Bell} label="Alertas ativos" value={activeAlerts} trend="Ocorrências não resolvidas" accent="red" />
       </div>
       <div className="iot-banner">
-        <div className="iot-icon">
-          <Radio size={20} />
+        <div className="iot-icon"><Radio size={20} /></div>
+        <div><b>Monitoramento SmartShelf <span className="live-dot" /> {loading ? "Atualizando..." : "Consulta ao Supabase"}</b>
+          <p>Os dados são consultados no Supabase e atualizados automaticamente a cada 15 segundos.{lastUpdated ? " Última atualização: " + new Date(lastUpdated).toLocaleTimeString("pt-BR") + "." : ""}</p>
         </div>
-        <div>
-          <b>
-            Monitoramento IoT <span className="live-dot" /> Ao vivo
-          </b>
-          <p>
-            Os dados apresentados nesta demonstração representam leituras
-            simuladas de sensores instalados nas prateleiras.
-          </p>
-        </div>
-        <div className="iot-flow">
-          <span>SENSOR</span>
-          <i>→</i>
-          <span>ESP32</span>
-          <i>→</i>
-          <span>DADOS</span>
-          <i>→</i>
-          <span>ALERTA</span>
-        </div>
+        <div className="iot-flow"><span>SENSOR</span><i>→</i><span>ESP32</span><i>→</i><span>SUPABASE</span><i>→</i><span>PAINEL</span></div>
       </div>
       <div className="dashboard-grid">
         <StockChart />
         <div className="panel shelf-status">
-          <div className="panel-title">
-            <div>
-              <h3>Status das prateleiras</h3>
-              <p className="muted">Visão por nível de estoque</p>
-            </div>
-            <NavLink className="text-btn" to="/prateleiras">
-              Ver todas <ChevronRight size={14} />
-            </NavLink>
-          </div>
-          {shelves.slice(0, 4).map((s) => (
-            <div className="shelf-row" key={s.id}>
-              <div className="shelf-name">
-                <span className={`shelf-dot ${s.status}`} />
-                <b>{s.id}</b>
-                <small>{s.products} produtos</small>
-              </div>
-              <div className="level-wrap">
-                <div className="progress">
-                  <i className={s.status} style={{ width: `${s.level}%` }} />
-                </div>
-                <strong>{s.level}%</strong>
-              </div>
-              <StatusBadge status={s.status} />
-            </div>
-          ))}
+          <div className="panel-title"><div><h3>Status das prateleiras</h3><p className="muted">Visão por nível de estoque</p></div><NavLink className="text-btn" to="/prateleiras">Ver todas <ChevronRight size={14} /></NavLink></div>
+          {shelves.map((s) => <div className="shelf-row" key={s.rawId}><div className="shelf-name"><span className={"shelf-dot " + s.status} /><b>{s.id}</b><small>{s.products} produtos</small></div><div className="level-wrap"><div className="progress"><i className={s.status} style={{ width: s.level + "%" }} /></div><strong>{s.level}%</strong></div><StatusBadge status={s.status} /></div>)}
+          {!shelves.length && !loading && <div className="empty">Nenhuma prateleira cadastrada no Supabase.</div>}
         </div>
       </div>
       <div className="dashboard-grid lower">
         <RecentAlerts onView={setAlert} />
-        <div className="panel">
-          <div className="panel-title">
-            <div>
-              <h3>Atividade recente</h3>
-              <p className="muted">Últimas atualizações</p>
-            </div>
-            <Activity size={19} className="muted" />
-          </div>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Produto</th>
-                  <th>Prateleira</th>
-                  <th>Nível</th>
-                  <th>Atualização</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => (
-                  <tr key={p.name}>
-                    <td>
-                      <b>{p.name}</b>
-                    </td>
-                    <td>{p.shelf}</td>
-                    <td>
-                      <span
-                        className={`level-text ${p.level < 30 ? "danger" : ""}`}
-                      >
-                        {p.level}%
-                      </span>
-                    </td>
-                    <td className="muted">{p.updated}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="panel"><div className="panel-title"><div><h3>Atividade recente</h3><p className="muted">Produtos e últimas leituras recebidas</p></div><Activity size={19} className="muted" /></div>
+          <div className="table-scroll"><table><thead><tr><th>Produto</th><th>Prateleira</th><th>Quantidade</th><th>Nível</th><th>Atualização</th></tr></thead><tbody>
+            {products.map((p) => <tr key={p.id}><td><b>{p.name}</b></td><td>{p.shelf}</td><td>{p.quantity == null ? "—" : p.quantity}</td><td><span className={"level-text " + (p.lowStock ? "danger" : "")}>{p.level}%</span></td><td className="muted">{p.updated}</td></tr>)}
+          </tbody></table></div>{!products.length && !loading && <div className="empty">Nenhum produto cadastrado.</div>}
         </div>
       </div>
       {alert && <AlertModal alert={alert} onClose={() => setAlert(null)} />}
