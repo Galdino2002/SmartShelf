@@ -108,8 +108,7 @@ function AlertModal({ alert, onClose }) {
         {alert.shelf} · {alert.message}
       </h2>
       <p className="muted">
-        Este alerta foi gerado a partir de uma leitura simulada do sensor de
-        estoque.
+        Este alerta foi registrado no banco de dados do SmartShelf.
       </p>
       <div className="detail-grid">
         <div>
@@ -162,10 +161,10 @@ function Header({ onMenu }) {
           <Bell size={19} />
           <i />
         </button>
-        <div className="avatar">AD</div>
+        <div className="avatar">SS</div>
         <div className="header-user">
-          <b>Administrador</b>
-          <small>Administrador</small>
+          <b>SmartShelf</b>
+          <small>Dados do Supabase</small>
         </div>
         {open && <NotificationPanel />}
       </div>
@@ -178,7 +177,7 @@ function NotificationPanel() {
     <div className="notification-panel">
       <div className="panel-heading">
         <b>Notificações</b>
-        <span>3 novas</span>
+        <span>{notifications.filter((item) => item.title === "Alerta ativo").length} ativas</span>
       </div>
       {notifications.map((n, i) => (
         <div className="notification" key={i}>
@@ -199,7 +198,7 @@ function NotificationPanel() {
   );
 }
 function Sidebar({ open, onClose }) {
-  const nav = useNavigate();
+  const { alerts } = useSmartShelfData();
   const links = [
     ["/dashboard", "Dashboard", LayoutDashboard],
     ["/prateleiras", "Prateleiras", Warehouse],
@@ -227,7 +226,7 @@ function Sidebar({ open, onClose }) {
           >
             <Icon size={18} />
             {label}
-            {label === "Alertas" && <span className="nav-count">5</span>}
+            {label === "Alertas" && <span className="nav-count">{alerts.filter((alert) => !alert.resolved).length}</span>}
           </NavLink>
         ))}
         <div className="sidebar-label system">SISTEMA</div>
@@ -241,21 +240,11 @@ function Sidebar({ open, onClose }) {
         </NavLink>
         <div className="sidebar-bottom">
           <div className="side-user">
-            <div className="avatar">AD</div>
-            <div>
-              <b>Admin</b>
-              <small>Administrador</small>
-            </div>
+            <div className="avatar">SS</div>
+            <div><b>SmartShelf</b><small>Protótipo IoT</small></div>
           </div>
-          <button
-            className="logout"
-            onClick={() => {
-              localStorage.removeItem("smartshelf-auth");
-              nav("/login");
-            }}
-          >
-            <LogOut size={17} />
-            Sair
+          <button className="logout" onClick={refreshData}>
+            <RefreshCw size={17} /> Atualizar dados
           </button>
         </div>
       </aside>
@@ -450,7 +439,7 @@ function Shelves() {
             Gerencie e acompanhe todas as prateleiras inteligentes.
           </p>
         </div>
-        <button className="btn outline">
+        <button className="btn outline" onClick={refreshData}>
           <RefreshCw size={16} /> Atualizar dados
         </button>
       </div>
@@ -627,7 +616,7 @@ function HistoryPage() {
       <div className="page-intro">
         <div>
           <h2>Histórico de Monitoramento</h2>
-          <p className="muted">Consulte as leituras simuladas dos sensores.</p>
+          <p className="muted">Consulte as leituras registradas no Supabase.</p>
         </div>
         <div className="history-filters">
           <select>
