@@ -680,92 +680,39 @@ function HistoryPage() {
   );
 }
 function SettingsPage() {
-  const [saved, setSaved] = useState(false);
-  const [name, setName] = useState(
-    localStorage.getItem("smartshelf-name") || "Administrador",
-  );
-  const save = (e) => {
-    e.preventDefault();
-    localStorage.setItem("smartshelf-name", name);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
-  };
+  const { shelves, products, alerts, lastUpdated, loading, error } = useSmartShelfData();
   return (
     <div className="content">
       <div className="page-intro">
-        <div>
-          <h2>Configurações</h2>
-          <p className="muted">Personalize sua experiência no SmartShelf.</p>
+        <div><h2>Configurações do protótipo</h2><p className="muted">Estado da conexão e configuração do hardware SmartShelf.</p></div>
+        <button className="btn outline" onClick={refreshData} disabled={loading}><RefreshCw size={16} /> Atualizar estado</button>
+      </div>
+      {error && <div className="error connection-error" role="alert">{error}</div>}
+      <div className="settings-grid">
+        <div className="panel settings-section">
+          <div className="section-heading"><div className="settings-icon"><Activity size={18} /></div><div><h3>Conexão com o banco</h3><p className="muted">Dados consultados diretamente no Supabase</p></div></div>
+          <div className="settings-value-row"><span>Status</span><StatusBadge status={error ? "critical" : loading ? "attention" : "normal"} /></div>
+          <div className="settings-value-row"><span>Última consulta</span><b>{lastUpdated ? new Date(lastUpdated).toLocaleString("pt-BR") : "Ainda não consultado"}</b></div>
+          <div className="settings-value-row"><span>Atualização automática</span><b>A cada 15 segundos</b></div>
+          <div className="settings-value-row"><span>Tabelas utilizadas</span><b>prateleiras, produtos, leituras, alertas</b></div>
+        </div>
+        <div className="panel settings-section">
+          <div className="section-heading"><div className="settings-icon"><Radio size={18} /></div><div><h3>Hardware do protótipo</h3><p className="muted">Configuração prevista para ESP32 e HX711</p></div></div>
+          <div className="settings-value-row"><span>Microcontrolador</span><b>ESP32</b></div>
+          <div className="settings-value-row"><span>Conversor de carga</span><b>HX711</b></div>
+          <div className="settings-value-row"><span>DT / DOUT</span><b>GPIO 4</b></div>
+          <div className="settings-value-row"><span>SCK / CLK</span><b>GPIO 5</b></div>
+          <div className="settings-value-row"><span>Prateleiras ativas</span><b>{shelves.length}</b></div>
+          <div className="settings-value-row"><span>Produtos ativos</span><b>{products.length}</b></div>
+          <div className="settings-value-row"><span>Alertas registrados</span><b>{alerts.length}</b></div>
         </div>
       </div>
-      <form className="settings-grid" onSubmit={save}>
-        <div className="panel settings-section">
-          <div className="section-heading">
-            <div className="settings-icon">
-              <Settings size={18} />
-            </div>
-            <div>
-              <h3>Perfil</h3>
-              <p className="muted">Informações da sua conta</p>
-            </div>
-          </div>
-          <label>
-            Nome
-            <input value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label>
-            E-mail
-            <input value="admin@smartshelf.com" readOnly />
-          </label>
-        </div>
-        <div className="panel settings-section">
-          <div className="section-heading">
-            <div className="settings-icon">
-              <Bell size={18} />
-            </div>
-            <div>
-              <h3>Preferências</h3>
-              <p className="muted">Escolha como deseja receber atualizações</p>
-            </div>
-          </div>
-          {[
-            "Receber alertas de estoque",
-            "Notificações no navegador",
-            "Atualização automática dos dados",
-          ].map((x, i) => (
-            <label className="toggle-row" key={x}>
-              <span>
-                <b>{x}</b>
-                <small>
-                  {i === 0
-                    ? "Seja avisado quando o estoque estiver baixo"
-                    : i === 1
-                      ? "Receba novidades importantes do sistema"
-                      : "Atualizar leituras a cada 5 minutos"}
-                </small>
-              </span>
-              <input type="checkbox" defaultChecked={i !== 1} />
-              <i />
-            </label>
-          ))}
-        </div>
-        <div className="settings-actions">
-          <button className="btn primary" type="submit">
-            {saved ? (
-              <>
-                <Check size={16} /> Alterações salvas
-              </>
-            ) : (
-              "Salvar alterações"
-            )}
-          </button>
-        </div>
-      </form>
+      <p className="muted settings-note">A leitura física só será exibida quando o ESP32 estiver calibrado e enviando medições para a tabela leituras.</p>
     </div>
   );
 }
 function Protected() {
-  return localStorage.getItem("smartshelf-auth") ? (
+  return (
     <Layout>
       <Routes>
         <Route path="/dashboard" element={<Dashboard />} />
@@ -775,25 +722,13 @@ function Protected() {
         <Route path="/configuracoes" element={<SettingsPage />} />
       </Routes>
     </Layout>
-  ) : (
-    <Navigate to="/login" replace />
   );
 }
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/"
-        element={
-          <Navigate
-            to={
-              localStorage.getItem("smartshelf-auth") ? "/dashboard" : "/login"
-            }
-            replace
-          />
-        }
-      />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Protected />} />
     </Routes>
   );
