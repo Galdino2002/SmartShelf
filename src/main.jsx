@@ -292,7 +292,7 @@ function StockChart() {
       <div className="panel-title">
         <div>
           <h3>Monitoramento do estoque</h3>
-          <p className="muted">Nível médio dos produtos</p>
+          <p className="muted">Peso monitorado em relação à capacidade da prateleira</p>
         </div>
         <div className="segmented">
           <button
@@ -310,40 +310,19 @@ function StockChart() {
         </div>
       </div>
       <div className="chart">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#e7eeeb"
-            />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "#84918d" }}
-            />
-            <YAxis
-              domain={[0, 100]}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "#84918d" }}
-              tickFormatter={(v) => `${v}%`}
-            />
-            <Tooltip
-              formatter={(v) => [`${v}%`, "Nível médio"]}
-              contentStyle={{ borderRadius: 10, border: "1px solid #e4ece8" }}
-            />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke="#159a75"
-              strokeWidth={3}
-              dot={{ r: 4, fill: "#fff", stroke: "#159a75", strokeWidth: 2 }}
-              activeDot={{ r: 6 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {data.length ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7eeeb" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#84918d" }} />
+              <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#84918d" }} tickFormatter={(v) => `${v}%`} />
+              <Tooltip formatter={(v) => [`${v}%`, "Capacidade utilizada"]} contentStyle={{ borderRadius: 10, border: "1px solid #e4ece8" }} />
+              <Line type="monotone" dataKey="value" stroke="#159a75" strokeWidth={3} dot={{ r: 4, fill: "#fff", stroke: "#159a75", strokeWidth: 2 }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="empty">Aguardando a primeira leitura real do ESP32.</div>
+        )}
       </div>
     </div>
   );
