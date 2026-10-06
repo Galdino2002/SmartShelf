@@ -327,13 +327,14 @@ function Header({ onMenu }) {
   );
 }
 function NotificationPanel() {
+  const { notifications } = useSmartShelfData();
   return (
     <div className="notification-panel">
       <div className="panel-heading">
         <b>Notificações</b>
         <span>3 novas</span>
       </div>
-      {mockNotifications.map((n, i) => (
+      {notifications.map((n, i) => (
         <div className="notification" key={i}>
           <span className={`notif-dot ${i === 0 ? "critical" : ""}`}>
             <Bell size={14} />
@@ -446,6 +447,7 @@ function StatCard({ icon: Icon, label, value, trend, accent }) {
   );
 }
 function StockChart() {
+  const { chart7, chart30 } = useSmartShelfData();
   const [period, setPeriod] = useState("7");
   const data = period === "7" ? chart7 : chart30;
   return (
@@ -510,6 +512,7 @@ function StockChart() {
   );
 }
 function RecentAlerts({ onView }) {
+  const { alerts } = useSmartShelfData();
   return (
     <div className="panel">
       <div className="panel-title">
@@ -522,7 +525,7 @@ function RecentAlerts({ onView }) {
         </NavLink>
       </div>
       <div className="alert-list">
-        {mockAlerts.slice(0, 3).map((a) => (
+        {alerts.slice(0, 3).map((a) => (
           <div className="alert-row" key={a.id}>
             <span className={`alert-icon ${a.severity}`}>
               {a.severity === "success" ? (
