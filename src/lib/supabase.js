@@ -3,15 +3,6 @@ const url =
   "https://jcobchoqoahrecsyshtk.supabase.co";
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 
-const channelNoop = {
-  on() {
-    return this;
-  },
-  subscribe() {
-    return { unsubscribe() {} };
-  },
-};
-
 function encodeFilterValue(value) {
   if (value === null || value === undefined) return "";
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -112,8 +103,5 @@ class QueryBuilder {
 export const supabase = {
   from(table) {
     return new QueryBuilder(table);
-  },
-  channel() {
-    return channelNoop;
   },
 };
