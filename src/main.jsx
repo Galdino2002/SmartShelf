@@ -687,9 +687,7 @@ function Shelves() {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const shown =
-    filter === "all"
-      ? shelves
-      : shelves.filter((s) => s.status === filter);
+    filter === "all" ? shelves : shelves.filter((s) => s.status === filter);
   return (
     <div className="content">
       <div className="page-intro">
@@ -842,7 +840,9 @@ function Alerts() {
                         <button
                           className="resolve-btn"
                           onClick={() =>
-                            resolveAlert(a.id).catch((error) => console.error("Erro ao resolver alerta:", error))
+                            resolveAlert(a.id).catch((error) =>
+                              console.error("Erro ao resolver alerta:", error),
+                            )
                           }
                         >
                           <Check size={15} /> Resolver
@@ -868,9 +868,7 @@ function Alerts() {
 function HistoryPage() {
   const { history, shelves } = useSmartShelfData();
   const [shelf, setShelf] = useState("Todas");
-  const data = history.filter(
-    (h) => shelf === "Todas" || h.shelf === shelf,
-  );
+  const data = history.filter((h) => shelf === "Todas" || h.shelf === shelf);
   return (
     <div className="content">
       <div className="page-intro">

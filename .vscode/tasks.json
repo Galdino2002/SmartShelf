@@ -120,6 +120,36 @@
 			"command": "git diff --stat",
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Format SmartShelf (PowerShell-safe)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"--yes",
+				"prettier@3.5.3",
+				"--write",
+				"\"src/**/*.js\"",
+				"\"src/**/*.jsx\"",
+				"\"src/**/*.css\"",
+				"vite.config.js",
+				"index.html",
+				"package.json"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "List formatted files",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"--no-pager",
+				"diff",
+				"--name-only"
+			],
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }
