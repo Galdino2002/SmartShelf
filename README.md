@@ -1,28 +1,55 @@
 # SmartShelf
 
-Protótipo de prateleira inteligente com React, Supabase, ESP32 e HX711.
+Protótipo IoT de prateleira inteligente com React, Supabase, ESP32 e HX711. O painel não usa mais listas de demonstração: ele consulta as tabelas do projeto Supabase.
 
-## Desenvolvimento
+## 1. Executar o painel
 
 ```bash
 npm install
 npm run dev
 ```
 
-Crie um `.env.local` a partir de `.env.example` e informe a chave publishable do projeto Supabase.
+Configure `.env.local` usando `.env.example`:
 
-## Banco
+```env
+VITE_SUPABASE_URL=https://jcobchoqoahrecsyshtk.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publishable
+```
 
-O dashboard usa as tabelas `prateleiras`, `produtos`, `leituras` e `alertas`.
+A chave publishable pode estar no frontend. **Nunca coloque uma chave `service_role` ou secret key no navegador nem no ESP32.**
 
-A tela é atualizada em tempo real quando uma leitura do ESP32 entra em `leituras`.
+## 2. Banco de dados
 
-## Hardware
+O painel lê estas tabelas:
 
-ESP32 + HX711:
-- DT: GPIO 4
-- SCK: GPIO 5
+- `prateleiras`: nome, localização e capacidade.
+- `produtos`: produto, peso unitário e estoque mínimo.
+- `leituras`: peso e quantidade estimada enviados pelo sensor.
+- `alertas`: ocorrências registradas e estado de resolução.
 
-Fluxo:
+O navegador consulta os dados na abertura e atualiza a consulta a cada 15 segundos. Isso é atualização periódica via REST, não WebSocket em tempo real. Resolver um alerta atualiza o registro no Supabase.
 
-ESP32 + HX711 -> Supabase -> PostgreSQL -> Dashboard SmartShelf
+O projeto tem uma prateleira cadastrada. O painel fica sem leituras reais até o ESP32 enviar a primeira medição.
+
+## 3. Hardware
+
+- ESP32 + célula de carga de 5 kg + HX711.
+- HX711 DT/DOUT → GPIO 4 do ESP32.
+- HX711 SCK/CLK → GPIO 5 do ESP32.
+- HX711 VCC → 3V3 e GND → GND.
+- A célula de carga deve ser ligada aos terminais E+/E-/A+/A- do módulo HX711 conforme a identificação do seu sensor/módulo.
+
+O firmware está em `hardware/esp32/SmartShelf.ino`. Abra no Arduino IDE, instale a biblioteca **HX711** compatível com bogde/HX711 e preencha Wi-Fi, chave publishable, UUIDs e fator de calibração no início do sketch. A chave publishable é pública; a política de RLS do protótipo permite inserção anônima em `leituras`, então restrinja essas políticas antes de usar em produção.
+
+**Calibração obrigatória:** o fator da célula de carga varia por montagem. Não considere os valores em kg confiáveis até calibrar o HX711 com um peso conhecido. Ajuste também `UNIT_WEIGHT_KG` ao peso real de cada unidade do produto cadastrado.
+
+## 4. Fluxo
+
+ESP32 + HX711 → Wi-Fi → Supabase REST/PostgreSQL → painel SmartShelf.
+
+## 5. Limites do protótipo
+
+- Sem autenticação de usuários; o painel é para demonstração local.
+- O navegador atualiza a cada 15 segundos.
+- A calibração física e o envio de leituras precisam ser validados com o equipamento montado.
+- As políticas de acesso abertas são somente para o protótipo; não reutilize esse conjunto de políticas em produção.
