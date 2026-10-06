@@ -85,7 +85,7 @@ function ShelfModal({ shelf, onClose }) {
           <b>{shelf.products} itens</b>
         </div>
         <div>
-          <small>Nível mínimo</small>
+          <small>Estoque mínimo</small>
           <b>{shelf.min}%</b>
         </div>
         <div>
@@ -510,6 +510,7 @@ function Shelves() {
 function Alerts() {
   const { alerts } = useSmartShelfData();
   const [items, setItems] = useState(alerts);
+  const [actionError, setActionError] = useState("");
   useEffect(() => setItems(alerts), [alerts]);
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
@@ -533,6 +534,7 @@ function Alerts() {
           <b>{items.filter((a) => !a.resolved).length}</b> alertas pendentes
         </div>
       </div>
+      {actionError && <div className="error connection-error" role="alert">{actionError}</div>}
       <div className="filter-tabs">
         {[
           ["all", "Todos"],
@@ -583,11 +585,12 @@ function Alerts() {
                       {!a.resolved && (
                         <button
                           className="resolve-btn"
-                          onClick={() =>
-                            resolveAlert(a.id).catch((error) =>
-                              console.error("Erro ao resolver alerta:", error),
-                            )
-                          }
+                          onClick={() => {
+                            setActionError("");
+                            resolveAlert(a.id).catch((error) => {
+                              setActionError(error?.message || "Não foi possível resolver o alerta.");
+                            });
+                          }}
                         >
                           <Check size={15} /> Resolver
                         </button>
