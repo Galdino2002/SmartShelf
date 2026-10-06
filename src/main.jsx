@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
-  useNavigate,
   useLocation,
   Navigate,
   Routes,
@@ -15,7 +14,6 @@ import {
   TriangleAlert,
   History,
   Settings,
-  LogOut,
   Bell,
   Package,
   Layers,
@@ -41,7 +39,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useSmartShelfData, resolveAlert } from "./data/useSmartShelfData";
+import { useSmartShelfData, resolveAlert, refreshData } from "./data/useSmartShelfData";
 import { StatusBadge, ProgressBar, IconButton } from "./components/atoms";
 import "./styles.css";
 
@@ -132,158 +130,6 @@ function AlertModal({ alert, onClose }) {
         </div>
       </div>
     </Modal>
-  );
-}
-function Login() {
-  const nav = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const submit = (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError("Preencha e-mail e senha para continuar.");
-      return;
-    }
-    setLoading(true);
-    setTimeout(() => {
-      localStorage.setItem("smartshelf-auth", "true");
-      nav("/dashboard");
-    }, 650);
-  };
-  const demo = () => {
-    setEmail("admin@smartshelf.com");
-    setPassword("123456");
-    setError("");
-  };
-  return (
-    <div className="login-page">
-      <div className="login-visual">
-        <div className="brand">
-          <div className="brand-mark">
-            <Layers size={21} />
-          </div>
-          <span>
-            Smart<strong>Shelf</strong>
-          </span>
-        </div>
-        <div className="visual-copy">
-          <span className="eyebrow">
-            PRATELEIRAS INTELIGENTES COM MONITORAMENTO IoT
-          </span>
-          <h1>
-            O estoque que
-            <br />
-            <em>pensa</em> por você.
-          </h1>
-          <p>Monitoramento inteligente para o seu estoque.</p>
-          <div className="shelf-illustration">
-            <div className="sensor-tag">
-              <Radio size={16} /> SENSOR ATIVO
-            </div>
-            {[86, 42, 18].map((n, i) => (
-              <div className="illustrated-row" key={i}>
-                <span className="box" style={{ height: `${18 + n / 5}px` }} />
-                <span className="box small" />
-                <span className="box" />
-                <div className="rack">
-                  <i style={{ width: `${n}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="visual-foot">
-            <span>
-              <Wifi size={14} /> Sensores conectados
-            </span>
-            <span>
-              <Activity size={14} /> Dados em tempo real
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="login-panel">
-        <div className="login-card">
-          <div className="mobile-brand brand">
-            <div className="brand-mark">
-              <Layers size={19} />
-            </div>
-            <span>
-              Smart<strong>Shelf</strong>
-            </span>
-          </div>
-          <span className="eyebrow">BEM-VINDO DE VOLTA</span>
-          <h2>Acesse seu painel</h2>
-          <p className="muted">
-            Entre para acompanhar seus estoques inteligentes.
-          </p>
-          <form onSubmit={submit}>
-            <label>
-              E-mail
-              <input
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
-            <label>
-              Senha
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </label>
-            <div className="form-row">
-              <label className="check">
-                <input type="checkbox" /> <span>Manter conectado</span>
-              </label>
-              <a href="#forgot" onClick={(e) => e.preventDefault()}>
-                Esqueci minha senha
-              </a>
-            </div>
-            {error && <div className="error">{error}</div>}
-            <button className="btn primary full" disabled={loading}>
-              {loading ? (
-                <>
-                  <RefreshCw className="spin" size={17} /> Entrando...
-                </>
-              ) : (
-                "Entrar"
-              )}
-            </button>
-          </form>
-          <div className="divider">
-            <span>ou</span>
-          </div>
-          <div className="demo-box">
-            <div>
-              <b>Modo demonstração</b>
-              <small>Explore o sistema com dados simulados</small>
-            </div>
-            <button
-              className="btn outline"
-              onClick={() => {
-                demo();
-                setTimeout(() => {
-                  localStorage.setItem("smartshelf-auth", "true");
-                  nav("/dashboard");
-                }, 150);
-              }}
-            >
-              Entrar como demo <ChevronRight size={16} />
-            </button>
-          </div>
-          <p className="login-note">Demo: admin@smartshelf.com · 123456</p>
-        </div>
-        <small className="copyright">
-          SmartShelf · Projeto Integrador — Cidades Inteligentes e IoT
-        </small>
-      </div>
-    </div>
   );
 }
 function Header({ onMenu }) {
