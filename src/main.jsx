@@ -610,71 +610,25 @@ function Alerts() {
 function HistoryPage() {
   const { history, shelves } = useSmartShelfData();
   const [shelf, setShelf] = useState("Todas");
-  const data = history.filter((h) => shelf === "Todas" || h.shelf === shelf);
+  const [period, setPeriod] = useState("30");
+  const cutoff = Date.now() - Number(period) * 24 * 60 * 60 * 1000;
+  const data = history.filter((item) => (shelf === "Todas" || item.shelf === shelf) && new Date(item.timestamp).getTime() >= cutoff);
   return (
     <div className="content">
       <div className="page-intro">
-        <div>
-          <h2>Histórico de Monitoramento</h2>
-          <p className="muted">Consulte as leituras registradas no Supabase.</p>
-        </div>
+        <div><h2>Histórico de monitoramento</h2><p className="muted">Leituras registradas no Supabase.</p></div>
         <div className="history-filters">
-          <select>
-            <option>Últimos 30 dias</option>
-            <option>Últimos 7 dias</option>
-          </select>
-          <select value={shelf} onChange={(e) => setShelf(e.target.value)}>
-            <option>Todas</option>
-            {shelves.slice(0, 4).map((s) => (
-              <option key={s.id}>{s.id}</option>
-            ))}
-          </select>
+          <select value={period} onChange={(e) => setPeriod(e.target.value)}><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option></select>
+          <select value={shelf} onChange={(e) => setShelf(e.target.value)}><option>Todas</option>{shelves.map((item) => <option key={item.rawId}>{item.id}</option>)}</select>
         </div>
       </div>
       <StockChart />
       <div className="panel table-panel history-table">
-        <div className="panel-title">
-          <h3>Registros de leitura</h3>
-          <span className="muted">{data.length} registros</span>
-        </div>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Horário</th>
-                <th>Prateleira</th>
-                <th>Produto</th>
-                <th>Nível</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((h, i) => (
-                <tr key={i}>
-                  <td>{h.date}</td>
-                  <td className="muted">{h.time}</td>
-                  <td>
-                    <b>{h.shelf}</b>
-                  </td>
-                  <td>{h.product}</td>
-                  <td>{h.level}%</td>
-                  <td>
-                    <StatusBadge
-                      status={
-                        h.status === "Normal"
-                          ? "normal"
-                          : h.status === "Atenção"
-                            ? "attention"
-                            : "critical"
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <div className="panel-title"><h3>Registros de leitura</h3><span className="muted">{data.length} registros</span></div>
+        <div className="table-scroll"><table><thead><tr><th>Data</th><th>Horário</th><th>Prateleira</th><th>Produto</th><th>Peso</th><th>Quantidade</th><th>Nível</th><th>Status</th></tr></thead>
+          <tbody>{data.map((item) => <tr key={item.id}><td>{item.date}</td><td className="muted">{item.time}</td><td><b>{item.shelf}</b></td><td>{item.product}</td><td>{item.weight.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg</td><td>{item.quantity == null ? "—" : item.quantity}</td><td>{item.level}%</td><td><StatusBadge status={item.status === "Normal" ? "normal" : "critical"} /></td></tr>)}</tbody>
+        </table></div>
+        {!data.length && <div className="empty">Nenhuma leitura registrada neste período.</div>}
       </div>
     </div>
   );
