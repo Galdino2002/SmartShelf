@@ -683,6 +683,7 @@ function Dashboard() {
   );
 }
 function Shelves() {
+  const { shelves } = useSmartShelfData();
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const shown =
@@ -765,7 +766,9 @@ function Shelves() {
   );
 }
 function Alerts() {
-  const [items, setItems] = useState(mockAlerts);
+  const { alerts } = useSmartShelfData();
+  const [items, setItems] = useState(alerts);
+  useEffect(() => setItems(alerts), [alerts]);
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const shown = items.filter(
@@ -839,11 +842,7 @@ function Alerts() {
                         <button
                           className="resolve-btn"
                           onClick={() =>
-                            setItems(
-                              items.map((x) =>
-                                x.id === a.id ? { ...x, resolved: true } : x,
-                              ),
-                            )
+                            resolveAlert(a.id).catch((error) => console.error("Erro ao resolver alerta:", error))
                           }
                         >
                           <Check size={15} /> Resolver
@@ -867,8 +866,9 @@ function Alerts() {
   );
 }
 function HistoryPage() {
+  const { history, shelves } = useSmartShelfData();
   const [shelf, setShelf] = useState("Todas");
-  const data = mockHistory.filter(
+  const data = history.filter(
     (h) => shelf === "Todas" || h.shelf === shelf,
   );
   return (
