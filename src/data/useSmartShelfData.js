@@ -33,7 +33,21 @@ const relativeTime = (value) => {
   return `${Math.floor(hours / 24)} d atrás`;
 };
 
+const MAX_SHELF_CAPACITY_KG = 3;
+const getShelfCapacity = (shelf) =>
+  Math.min(Math.max(Number(shelf?.capacidade_kg || MAX_SHELF_CAPACITY_KG), 0.001), MAX_SHELF_CAPACITY_KG);
+
 const clampPercent = (value) => Math.round(Math.max(0, Math.min(100, value)));
+
+const downsample = (points, maxPoints = 90) => {
+  if (points.length <= maxPoints) return points;
+  const sampled = [];
+  const step = (points.length - 1) / (maxPoints - 1);
+  for (let index = 0; index < maxPoints; index += 1) {
+    sampled.push(points[Math.round(index * step)]);
+  }
+  return sampled;
+};
 
 function build(shelves, products, readings, alerts) {
   const latestByShelf = new Map();
@@ -58,7 +72,7 @@ function build(shelves, products, readings, alerts) {
           : null;
     const level = hasReading
       ? clampPercent(
-            (weight / Number(shelf?.capacidade_kg || 5)) * 100,
+            (weight / getShelfCapacity(shelf)) * 100,
           )
       : null;
     return {
@@ -86,7 +100,7 @@ function build(shelves, products, readings, alerts) {
     );
     const hasReading = Boolean(reading);
     const weight = hasReading ? Number(reading.peso_kg ?? 0) : null;
-    const capacity = Number(shelf.capacidade_kg || 5);
+    const capacity = getShelfCapacity(shelf);
     const level = hasReading ? clampPercent((weight / capacity) * 100) : null;
     const hasLowStock = shelfProducts.some((product) => product.lowStock);
     const status = !hasReading
@@ -140,7 +154,7 @@ function build(shelves, products, readings, alerts) {
   const history = readings.map((reading) => {
     const shelf = shelfById.get(reading.prateleira_id);
     const product = productById.get(reading.produto_id);
-    const capacity = Number(shelf?.capacidade_kg || 5);
+    const capacity = getShelfCapacity(shelf);
     const weight = Number(reading.peso_kg || 0);
     const quantity =
       reading.quantidade_estimada ??
@@ -175,9 +189,14 @@ function build(shelves, products, readings, alerts) {
         day: "2-digit",
         month: "2-digit",
       }),
+      label: new Date(reading.criado_em).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
       value: clampPercent(
-        (Number(reading.peso_kg || 0) / Number(shelf?.capacidade_kg || 5)) *
-          100,
+        (Number(reading.peso_kg || 0) / getShelfCapacity(shelf)) * 100,
       ),
     };
   });
@@ -187,11 +206,15 @@ function build(shelves, products, readings, alerts) {
     products: mappedProducts,
     alerts: mappedAlerts,
     history,
-    chart7: points.filter(
-      (point) => new Date(point.timestamp).getTime() >= Date.now() - 7 * 86400000,
+    chart7: downsample(
+      points.filter(
+        (point) => new Date(point.timestamp).getTime() >= Date.now() - 7 * 86400000,
+      ),
     ),
-    chart30: points.filter(
-      (point) => new Date(point.timestamp).getTime() >= Date.now() - 30 * 86400000,
+    chart30: downsample(
+      points.filter(
+        (point) => new Date(point.timestamp).getTime() >= Date.now() - 30 * 86400000,
+      ),
     ),
     latestReadingAt: readings.at(-1)?.criado_em || null,
     notifications: mappedAlerts.slice(0, 5).map((alert) => ({
