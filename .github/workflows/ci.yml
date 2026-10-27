@@ -32,5 +32,9 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
           arduino-cli lib install "HX711@0.7.5"
+      - name: Preparar sketch com nome esperado pelo Arduino CLI
+        run: |
+          mkdir -p /tmp/SmartShelf
+          cp hardware/esp32/SmartShelf.ino /tmp/SmartShelf/SmartShelf.ino
       - name: Compilar firmware
-        run: arduino-cli compile --fqbn esp32:esp32:esp32 hardware/esp32
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 /tmp/SmartShelf
