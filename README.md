@@ -1,87 +1,71 @@
 # SmartShelf
 
-Protótipo IoT de prateleira inteligente com React, Supabase, ESP32 e HX711. O painel consulta as tabelas do projeto Supabase e atualiza os dados periodicamente.
+Protótipo IoT de prateleira inteligente com React, Supabase, ESP32 e HX711.
+
+## Fluxo da demonstração
+
+ESP32 alimentado pelo USB do computador → HX711/célula de carga → Wi-Fi 2,4 GHz → Supabase REST/PostgreSQL → painel web (atualiza a cada 15 segundos).
 
 ## 1. Executar o painel
 
+Requer Node.js 20 ou 22 e npm.
+
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Configure `.env.local` usando `.env.example`:
+Crie `.env.local` a partir de `.env.example` e configure:
 
 ```env
 VITE_SUPABASE_URL=https://jcobchoqoahrecsyshtk.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publishable
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_sua_chave
 ```
 
-A chave publishable pode estar no frontend. **Nunca coloque uma chave `service_role` ou secret key no navegador nem no ESP32.**
+A chave publishable pode estar no frontend, mas a autorização real depende das políticas RLS. Nunca use uma chave secret/service_role no navegador ou no ESP32.
 
-## 2. Publicar no Vercel
+## 2. Configurar o ESP32
 
-O projeto está configurado para Vercel com Vite e fallback das rotas do React.
+Arquivo: [hardware/esp32/SmartShelf.ino](hardware/esp32/SmartShelf.ino).
 
-1. Importe o repositório no Vercel.
-2. Mantenha o framework como Vite.
-3. Em Settings → Environment Variables, configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`.
-4. Publique o projeto.
+1. Instale a Arduino IDE 2 e o suporte à placa ESP32.
+2. Instale a biblioteca **HX711** de Bogdan Necula/Bogde (versão 0.7.5 ou compatível).
+3. Na pasta `hardware/esp32`, copie `secrets.h.example` para `secrets.h`.
+4. Edite `secrets.h` localmente e preencha SSID, senha do Wi-Fi 2,4 GHz e chave publishable.
+5. Não faça commit de `secrets.h`; ele está no `.gitignore`.
+6. Selecione a placa e a porta COM, carregue o sketch e abra o Monitor Serial em **115200 baud**.
+7. Durante a inicialização, deixe a plataforma vazia para a tara.
 
-Não faça commit de `.env.local`.
+O firmware lê a balança a cada 5 segundos e envia para `public.leituras`. O Monitor Serial mostra mensagens `PESO`, conexão Wi-Fi e `OK SUPABASE` ou o código de erro HTTP.
 
-## 3. Banco de dados Supabase
+### Ligações
 
-O painel usa estas tabelas:
+- HX711 DT/DOUT → ESP32 GPIO 4
+- HX711 SCK/CLK → ESP32 GPIO 5
+- HX711 VCC → 3V3
+- HX711 GND → GND
+- Célula de carga → terminais apropriados do HX711 conforme identificação do módulo
 
-- `prateleiras`: nome, localização e capacidade.
-- `produtos`: produto, peso unitário e estoque mínimo.
-- `leituras`: peso e quantidade estimada enviados pelo sensor.
-- `alertas`: ocorrências e estado de resolução.
-- `dispositivos`: cadastro do ESP32 e pinos utilizados.
-
-O painel consulta os dados na abertura e atualiza a cada 15 segundos. Isso é atualização periódica via REST, não WebSocket. A interface mostra “Sem leitura” quando o sensor ainda não enviou dados.
-
-O projeto possui registros de protótipo para:
-- Prateleira: `8a073a67-1778-422b-89d7-290b7892df05`
-- Produto: `8b4a1468-9c34-48d2-b85d-edd86965cfc7`
-- Dispositivo ESP32: `f5df0621-c111-48e6-a675-46a88c1c0102`
-
-O produto cadastrado usa peso unitário de 0,200 kg. Ajuste `UNIT_WEIGHT_KG` no firmware se o produto real tiver outro peso.
-
-## 4. Hardware ESP32 + HX711
-
-Ligações usadas:
-- HX711 DT/DOUT → GPIO 4 do ESP32.
-- HX711 SCK/CLK → GPIO 5 do ESP32.
-- HX711 VCC → 3V3 e GND → GND.
-- Ligue a célula de carga aos terminais do HX711 de acordo com a identificação do seu sensor e módulo.
-
-O firmware está em `hardware/esp32/SmartShelf.ino`. No Arduino IDE:
-1. Instale a biblioteca HX711 compatível com bogde/HX711.
-2. Preencha `WIFI_SSID` e `WIFI_PASSWORD`.
-3. Preencha `SUPABASE_PUBLISHABLE_KEY` com a chave publishable do projeto SmartShelf.
-4. Confirme os UUIDs da prateleira e do produto no início do arquivo.
-5. Grave o sketch no ESP32 e abra o Monitor Serial em 115200 baud.
+O USB alimenta o ESP32. A comunicação com Supabase exige Wi-Fi e internet; USB sozinho só permite a leitura local pelo Monitor Serial.
 
 ### Calibração
 
-O firmware está configurado provisoriamente com `CALIBRATION_FACTOR = 413.7`, estimado a partir de uma medição de aproximadamente 7 g na montagem atual. **Esse fator ainda precisa ser validado com pesos conhecidos maiores** (por exemplo, 100 g e 500 g). A tolerância depende da montagem física da célula de carga. O código converte gramas para quilogramas antes de inserir em `leituras.peso_kg`.
+`CALIBRATION_FACTOR = 413.7` é **provisório**, estimado a partir de uma medição anterior de aproximadamente 7 g nesta montagem. Valide com objetos de peso conhecido (por exemplo 100 g e 500 g). A estrutura mecânica, orientação da célula e conexões afetam a precisão. Ajuste `UNIT_WEIGHT_KG = 0.200` ao peso real de uma unidade do produto.
 
-O ESP32 envia uma leitura a cada 5 segundos. O campo `quantidade_estimada` é calculado dividindo o peso total em kg por `UNIT_WEIGHT_KG` e arredondando para baixo.
+## 3. Supabase
 
-### Segurança
+Projeto configurado: `jcobchoqoahrecsyshtk`. O firmware usa os UUIDs de protótipo definidos no sketch:
+- Prateleira: `8a073a67-1778-422b-89d7-290b7892df05`
+- Produto: `8b4a1468-9c34-48d2-b85d-edd86965cfc7`
 
-A chave publishable é pública, mas as políticas RLS atuais de protótipo permitem leitura anônima e inserção anônima de leituras. Isso facilita a demonstração, mas **não é apropriado para produção**: restrinja as políticas e use autenticação própria do dispositivo/backend antes de expor o sistema a redes não confiáveis.
+As tabelas necessárias são `prateleiras`, `produtos`, `leituras`, `alertas` e `dispositivos`. A inserção de leitura deve passar pela política RLS `INSERT` de `leituras`; o trigger do protótipo pode criar alertas de estoque.
 
-O sketch usa `WiFiClientSecure::setInsecure()` somente para teste de laboratório. Em produção, valide o certificado TLS e evite depender de uma chave publishable como única proteção de escrita.
+**Segurança:** as políticas atuais são permissivas para demonstração anônima e não são adequadas para produção. O firmware usa validação TLS desabilitada (`setInsecure()`) apenas para protótipo em rede confiável. Para produção, valide certificados TLS e use autenticação de dispositivo/backend com privilégios mínimos.
 
-## 5. Fluxo
+## 4. Verificações automáticas
 
-ESP32 + HX711 → Wi-Fi → Supabase REST/PostgreSQL → painel SmartShelf.
+O GitHub Actions executa `npm ci` + `npm run build` para o painel e tenta compilar o firmware para ESP32 a cada push/PR. Isso detecta erros de compilação, mas não substitui o teste da balança física, calibração e conectividade real.
 
-## 6. Limites do protótipo
+## 5. Vercel
 
-- Sem autenticação de usuários no painel.
-- Atualização do painel a cada 15 segundos.
-- A calibração física precisa ser validada com a plataforma montada.
-- O envio real exige credenciais Wi-Fi válidas e a chave publishable configuradas no firmware.
+Configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` nas Environment Variables do projeto Vercel e publique o branch `main`.
