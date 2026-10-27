@@ -1,0 +1,36 @@
+name: SmartShelf CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  web-build:
+    name: Build do painel web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  esp32-compile:
+    name: Compilar firmware ESP32
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Configurar Arduino CLI
+        run: |
+          arduino-cli config init
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+          arduino-cli lib install "HX711@0.7.5"
+      - name: Compilar firmware
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 hardware/esp32
