@@ -458,6 +458,8 @@ function StockChart() {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "#84918d", fontSize: 11 }}
+                interval="preserveStartEnd"
+                minTickGap={28}
               />
               <YAxis
                 domain={[0, 100]}
@@ -467,6 +469,7 @@ function StockChart() {
                 tickFormatter={(value) => `${value}%`}
               />
               <Tooltip
+                labelFormatter={(_, payload) => payload?.[0]?.payload?.label || ""}
                 formatter={(value) => [`${value}%`, "Capacidade utilizada"]}
                 contentStyle={{ border: "1px solid #e5e9e8", borderRadius: 10 }}
               />
@@ -475,7 +478,9 @@ function StockChart() {
                 dataKey="value"
                 stroke="#d71920"
                 strokeWidth={2.5}
-                dot={{ r: 3, fill: "#fff", stroke: "#d71920", strokeWidth: 2 }}
+                dot={false}
+                activeDot={{ r: 4, fill: "#fff", stroke: "#d71920", strokeWidth: 2 }}
+                isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
